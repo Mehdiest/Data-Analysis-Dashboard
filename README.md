@@ -71,6 +71,23 @@ Five additional Plotly.js visualisations:
 
 ---
 
+## Domain Adaptability
+
+While this project ships with financial market data (Forex, Crypto, Commodities), the entire analytical stack is domain-agnostic. Swapping the data source is the only change needed to deploy this dashboard in other industries:
+
+| Domain | Data | Change Required |
+|--------|------|-----------------|
+| **E-commerce** | Sales, revenue, conversion rate, AOV | Seed script only |
+| **SaaS Metrics** | MRR, churn rate, DAU/MAU, LTV | Seed script only |
+| **IoT / Sensor** | Temperature, pressure, energy consumption | Seed script only |
+| **Social Media** | Followers, engagement rate, reach, impressions | Seed script only |
+| **Healthcare** | Patient metrics, lab values, admission rates | Seed script + minor schema |
+| **Supply Chain** | Inventory levels, delivery time, defect rates | Seed script + minor schema |
+
+The KPI cards, trend analysis, correlation matrix, and forecasting engine all operate on any numeric time-series — making this a reusable analytics foundation for any data-driven product.
+
+---
+
 ## Instrument Coverage — 32 Instruments
 
 | Segment | Count | Instruments |
@@ -206,6 +223,23 @@ python -m http.server 3000 --directory ../frontend
 - `/api/trend/{ticker}` — `start_date`, `end_date` (ISO date)
 - `/api/intraday/{ticker}` — `interval=1h` or `interval=4h`
 - `/api/forecast/{ticker}` — `horizon_days` (int, 5–180, default 30)
+
+---
+
+## Extensibility — Beyond Financial Markets
+
+The analytical stack (KPI cards, trend regression, correlation matrix, forecasting) is fully domain-agnostic. Only the data source and seed script need to change — all backend logic and the frontend are reusable as-is.
+
+| Domain | Example Data | Changes Required |
+|--------|-------------|-----------------|
+| **E-commerce** | Revenue, orders, conversion rate, AOV | Seed script only |
+| **SaaS Metrics** | MRR, churn rate, DAU/MAU, LTV | Seed script only |
+| **IoT / Sensor** | Temperature, pressure, energy consumption | Seed script only |
+| **Social Media** | Followers, engagement rate, impressions | Seed script only |
+| **Healthcare** | Patient metrics, lab values, admission rates | Seed script + minor schema |
+| **Supply Chain** | Inventory levels, delivery times, lead times | Seed script + minor schema |
+
+To adapt to a new domain: replace `seed_data.py` with your data source, update `ASSET_CATALOGUE` with your metric names, and the full dashboard — KPIs, trend charts, correlation heatmap, and forecasting — works immediately with your data.
 
 ---
 
