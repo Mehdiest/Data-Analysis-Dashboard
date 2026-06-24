@@ -7,982 +7,696 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-
 <style>
-/* ─── Design Tokens ─────────────────────────────────────────────────── */
 :root {
-  --bg-void:     #080C14;
-  --bg-base:     #0F1923;
-  --bg-panel:    #162032;
-  --bg-card:     #1C2A3E;
-  --bg-hover:    #223048;
-
-  --border-dim:  #1E2E42;
-  --border-mid:  #2A3F58;
-  --border-hi:   #3A5070;
-
-  --text-primary:   #D4E2F0;
-  --text-secondary: #7A9BB8;
-  --text-muted:     #3A5070;
-  --text-dim:       #263848;
-
-  --teal:    #00C896;
-  --teal-d:  #009E78;
-  --teal-bg: rgba(0,200,150,0.08);
-  --amber:   #F0B429;
-  --amber-bg:rgba(240,180,41,0.08);
-  --purple:  #7C6AF7;
-  --red:     #F06060;
-  --green:   #34D399;
-
-  --font-data: 'JetBrains Mono', 'Courier New', monospace;
-  --font-ui:   'Inter', system-ui, sans-serif;
-
-  --sidebar-w: 64px;
-  --radius:    6px;
+  --bg-void:    #080C14;
+  --bg-base:    #0F1923;
+  --bg-panel:   #162032;
+  --bg-card:    #1C2A3E;
+  --bg-hover:   #223048;
+  --border-dim: #1E2E42;
+  --border-mid: #2A3F58;
+  --border-hi:  #3A5070;
+  --text-hi:    #D4E2F0;
+  --text-mid:   #7A9BB8;
+  --text-lo:    #3A5070;
+  --teal:       #00C896;
+  --teal-d:     #009E78;
+  --amber:      #F0B429;
+  --purple:     #7C6AF7;
+  --red:        #F06060;
+  --green:      #34D399;
+  --blue:       #38BDF8;
+  --font-data:  'JetBrains Mono', monospace;
+  --font-ui:    'Inter', system-ui, sans-serif;
+  --r:          6px;
 }
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  height: 100%;
-  background: var(--bg-void);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 13px;
-  overflow: hidden;
-}
-
+html, body { height: 100%; background: var(--bg-void); color: var(--text-hi); font-family: var(--font-ui); font-size: 13px; overflow: hidden; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
 input, select { font-family: inherit; }
 
-/* ─── App Shell ──────────────────────────────────────────────────────── */
-.app {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
-  grid-template-rows: 36px 1fr;
-  height: 100vh;
-}
+/* ── Shell ── */
+.app { display: grid; grid-template-columns: 60px 1fr; grid-template-rows: 34px 1fr; height: 100vh; }
 
-/* ─── Ticker Tape ────────────────────────────────────────────────────── */
-.tape {
-  grid-column: 1 / -1;
-  background: var(--bg-base);
-  border-bottom: 1px solid var(--border-dim);
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  position: relative;
-}
-.tape::before, .tape::after {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0;
-  width: 80px;
-  z-index: 2;
-  pointer-events: none;
-}
-.tape::before { left: 0; background: linear-gradient(90deg, var(--bg-base) 30%, transparent); }
-.tape::after  { right: 0; background: linear-gradient(-90deg, var(--bg-base) 30%, transparent); }
-.tape-inner {
-  display: flex;
-  white-space: nowrap;
-  animation: tape-scroll 50s linear infinite;
-}
+/* ── Ticker Tape ── */
+.tape { grid-column: 1/-1; background: var(--bg-base); border-bottom: 1px solid var(--border-dim); display: flex; align-items: center; overflow: hidden; position: relative; }
+.tape::before, .tape::after { content: ''; position: absolute; top: 0; bottom: 0; width: 70px; z-index: 2; pointer-events: none; }
+.tape::before { left: 0; background: linear-gradient(90deg, var(--bg-base) 20%, transparent); }
+.tape::after  { right: 0; background: linear-gradient(-90deg, var(--bg-base) 20%, transparent); }
+.tape-inner { display: flex; white-space: nowrap; animation: tape-scroll 55s linear infinite; }
 @keyframes tape-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.tape-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 20px;
-  border-right: 1px solid var(--border-dim);
-  font-family: var(--font-data);
-  font-size: 11px;
-}
-.tape-sym { color: var(--teal); font-weight: 600; letter-spacing: .06em; }
-.tape-px  { color: var(--text-primary); }
-.tape-chg { font-size: 10px; }
-.up  { color: var(--green); }
-.dn  { color: var(--red);   }
+.tape-item { display: inline-flex; align-items: center; gap: 7px; padding: 0 18px; border-right: 1px solid var(--border-dim); font-family: var(--font-data); font-size: 11px; }
+.t-sym { color: var(--teal); font-weight: 600; letter-spacing: .06em; }
+.t-px  { color: var(--text-hi); }
+.t-up  { color: var(--green); font-size: 10px; }
+.t-dn  { color: var(--red);   font-size: 10px; }
 
-/* ─── Sidebar ────────────────────────────────────────────────────────── */
-.sidebar {
-  grid-row: 2;
-  background: var(--bg-base);
-  border-right: 1px solid var(--border-dim);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 0;
-  gap: 4px;
-  position: relative;
-  overflow: hidden;
-}
+/* ── Sidebar ── */
+.sidebar { grid-row: 2; background: var(--bg-base); border-right: 1px solid var(--border-dim); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 3px; position: relative; overflow: hidden; }
+.sb-matrix { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0.035; }
+.sb-col { position: absolute; top: 0; font-family: var(--font-data); font-size: 8px; color: var(--teal); display: flex; flex-direction: column; gap: 3px; animation: mfall linear infinite; }
+@keyframes mfall { 0% { transform: translateY(-100%); opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(110vh); opacity: 0; } }
+.nav-btn { width: 44px; height: 44px; border-radius: var(--r); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--text-lo); transition: all 120ms; position: relative; }
+.nav-btn:hover { background: var(--bg-panel); color: var(--text-mid); }
+.nav-btn.active { background: rgba(0,200,150,.1); color: var(--teal); }
+.nav-btn.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 2px; height: 22px; background: var(--teal); border-radius: 0 2px 2px 0; }
+.nav-icon  { font-size: 15px; }
+.nav-label { font-size: 8px; font-family: var(--font-data); letter-spacing: .04em; }
+.sb-spacer { flex: 1; }
+.sb-logout { width: 44px; height: 44px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; color: var(--text-lo); font-size: 14px; transition: all 120ms; }
+.sb-logout:hover { background: rgba(240,96,96,.1); color: var(--red); }
 
-/* Signature: animated market numbers in sidebar background */
-.sidebar-matrix {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0.04;
-}
-.matrix-col {
-  position: absolute;
-  top: 0;
-  font-family: var(--font-data);
-  font-size: 9px;
-  color: var(--teal);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  animation: matrix-fall linear infinite;
-}
-@keyframes matrix-fall {
-  0%   { transform: translateY(-100%); opacity: 1; }
-  80%  { opacity: 1; }
-  100% { transform: translateY(100vh); opacity: 0; }
-}
-
-.nav-btn {
-  width: 44px; height: 44px;
-  border-radius: var(--radius);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  color: var(--text-muted);
-  transition: background 120ms, color 120ms;
-  position: relative;
-}
-.nav-btn:hover { background: var(--bg-panel); color: var(--text-secondary); }
-.nav-btn.active { background: var(--teal-bg); color: var(--teal); }
-.nav-btn.active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 50%;
-  transform: translateY(-50%);
-  width: 2px; height: 22px;
-  background: var(--teal);
-  border-radius: 0 2px 2px 0;
-}
-.nav-icon { font-size: 16px; line-height: 1; }
-.nav-label { font-size: 8px; font-family: var(--font-data); letter-spacing: .05em; }
-
-.sidebar-spacer { flex: 1; }
-.sidebar-logout {
-  width: 44px; height: 44px;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 16px;
-  transition: background 120ms, color 120ms;
-}
-.sidebar-logout:hover { background: rgba(240,96,96,.1); color: var(--red); }
-
-/* ─── Content Area ───────────────────────────────────────────────────── */
-.content {
-  grid-row: 2;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-}
+/* ── Content ── */
+.content { grid-row: 2; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
 .content::-webkit-scrollbar { width: 4px; }
-.content::-webkit-scrollbar-track { background: transparent; }
 .content::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
 
-/* ─── Page Header ────────────────────────────────────────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px 12px;
-  border-bottom: 1px solid var(--border-dim);
-  flex-shrink: 0;
-}
-.page-title {
-  font-family: var(--font-data);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: .1em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.live-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 6px var(--teal);
-  animation: dot-pulse 2s ease-in-out infinite;
-}
-@keyframes dot-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: .4; }
-}
-.page-controls { display: flex; align-items: center; gap: 8px; }
+/* ── Page Header ── */
+.ph { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px 12px; border-bottom: 1px solid var(--border-dim); flex-shrink: 0; flex-wrap: wrap; gap: 10px; }
+.ph-title { font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--text-hi); letter-spacing: .1em; display: flex; align-items: center; gap: 8px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 6px var(--teal); animation: dot-pulse 2s ease-in-out infinite; }
+@keyframes dot-pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+.ph-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pb { padding: 18px 22px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
-.select-ctrl {
-  background: var(--bg-card);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius);
-  padding: 6px 10px;
-  color: var(--text-primary);
-  font-family: var(--font-data);
-  font-size: 11px;
-  outline: none;
-  cursor: pointer;
-}
-.select-ctrl:focus { border-color: var(--teal); }
+/* ── Controls ── */
+.sel { background: var(--bg-card); border: 1px solid var(--border-mid); border-radius: var(--r); padding: 6px 10px; color: var(--text-hi); font-family: var(--font-data); font-size: 11px; outline: none; cursor: pointer; }
+.sel:focus { border-color: var(--teal); }
+.btn { padding: 6px 12px; border-radius: var(--r); border: 1px solid var(--border-mid); font-family: var(--font-data); font-size: 11px; color: var(--text-mid); transition: all 120ms; }
+.btn:hover  { border-color: var(--teal); color: var(--teal); }
+.btn.on     { background: rgba(0,200,150,.12); border-color: var(--teal); color: var(--teal); font-weight: 600; }
+.btn.amber  { background: rgba(240,180,41,.12); border-color: var(--amber); color: var(--amber); font-weight: 600; }
 
-.btn-ctrl {
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-mid);
-  font-family: var(--font-data);
-  font-size: 11px;
-  color: var(--text-secondary);
-  transition: all 120ms;
-}
-.btn-ctrl:hover { border-color: var(--teal); color: var(--teal); }
-.btn-ctrl.primary { background: var(--teal); color: var(--bg-void); border-color: var(--teal); font-weight: 600; }
-.btn-ctrl.primary:hover { background: var(--teal-d); }
+/* ── Category Filter Tabs ── */
+.cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.cat-tab { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border-mid); font-family: var(--font-data); font-size: 10px; font-weight: 600; color: var(--text-mid); letter-spacing: .06em; transition: all 120ms; }
+.cat-tab:hover { border-color: var(--border-hi); color: var(--text-hi); }
+.cat-tab.on { color: var(--bg-void); font-weight: 700; }
+.cat-tab.all-on   { background: var(--teal);   border-color: var(--teal); }
+.cat-tab.forex-on { background: var(--blue);   border-color: var(--blue); }
+.cat-tab.crypto-on{ background: var(--purple); border-color: var(--purple); }
+.cat-tab.comm-on  { background: var(--amber);  border-color: var(--amber); }
 
-/* ─── Main Padding ───────────────────────────────────────────────────── */
-.page-body { padding: 20px 24px; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+/* ── Market section label ── */
+.mkt-label { font-family: var(--font-data); font-size: 9px; font-weight: 600; letter-spacing: .1em; color: var(--text-lo); text-transform: uppercase; padding: 4px 0 2px; border-bottom: 1px solid var(--border-dim); margin-bottom: 8px; }
 
-/* ─── KPI Grid ───────────────────────────────────────────────────────── */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
-
-.kpi-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-dim);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: border-color 120ms, background 120ms;
-  position: relative;
-  overflow: hidden;
-}
-.kpi-card::after {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 2px;
-  background: var(--teal);
-  opacity: 0;
-  transition: opacity 120ms;
-}
+/* ── KPI Cards ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.kpi-card { background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: var(--r); padding: 13px 15px; cursor: pointer; transition: all 120ms; position: relative; overflow: hidden; }
+.kpi-card::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--teal); opacity: 0; transition: opacity 120ms; }
 .kpi-card:hover { border-color: var(--border-hi); background: var(--bg-hover); }
 .kpi-card:hover::after { opacity: .5; }
-.kpi-card.active { border-color: var(--teal); background: rgba(0,200,150,.04); }
-.kpi-card.active::after { opacity: 1; }
+.kpi-card.sel { border-color: var(--teal); background: rgba(0,200,150,.04); }
+.kpi-card.sel::after { opacity: 1; }
+.kpi-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.kpi-sym  { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--teal); letter-spacing: .08em; }
+.kpi-cat  { font-family: var(--font-data); font-size: 9px; padding: 2px 5px; border-radius: 3px; font-weight: 600; }
+.c-forex   { background: rgba(56,189,248,.1);  color: var(--blue);   border: 1px solid rgba(56,189,248,.2); }
+.c-crypto  { background: rgba(124,106,247,.1); color: var(--purple); border: 1px solid rgba(124,106,247,.2); }
+.c-comm    { background: rgba(240,180,41,.1);  color: var(--amber);  border: 1px solid rgba(240,180,41,.2); }
+.kpi-name  { font-size: 10px; color: var(--text-lo); margin-bottom: 8px; }
+.kpi-price { font-family: var(--font-data); font-size: 19px; font-weight: 700; color: var(--text-hi); letter-spacing: -.02em; margin-bottom: 8px; }
+.kpi-row   { display: flex; justify-content: space-between; padding: 2px 0; }
+.kpi-rl    { font-family: var(--font-data); font-size: 10px; color: var(--text-lo); }
+.kpi-rv    { font-family: var(--font-data); font-size: 11px; font-weight: 500; }
+.pos { color: var(--green); } .neg { color: var(--red); } .neu { color: var(--text-mid); }
+.sep { border: none; border-top: 1px solid var(--border-dim); margin: 7px 0; }
 
-.kpi-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-.kpi-sym { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--teal); letter-spacing: .08em; }
-.kpi-cat {
-  font-family: var(--font-data);
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-weight: 600;
-  letter-spacing: .05em;
-}
-.cat-forex     { background: rgba(56,189,248,.1); color: #38BDF8; border: 1px solid rgba(56,189,248,.2); }
-.cat-crypto    { background: rgba(124,106,247,.1); color: var(--purple); border: 1px solid rgba(124,106,247,.2); }
-.cat-commodity { background: rgba(240,180,41,.1); color: var(--amber); border: 1px solid rgba(240,180,41,.2); }
+/* ── Panel ── */
+.panel { background: var(--bg-panel); border: 1px solid var(--border-dim); border-radius: var(--r); overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border-dim); flex-wrap: wrap; gap: 10px; }
+.panel-title { font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--text-hi); letter-spacing: .08em; }
+.panel-sub   { font-size: 10px; color: var(--text-lo); margin-top: 2px; }
+.panel-body  { padding: 16px; }
+.panel-meta  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.leg { display: flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 10px; color: var(--text-mid); }
+.leg-line { width: 16px; height: 2px; border-radius: 1px; }
 
-.kpi-price { font-family: var(--font-data); font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -.02em; margin-bottom: 10px; }
-.kpi-name  { font-size: 10px; color: var(--text-muted); margin-bottom: 8px; }
+/* ── Trend badge ── */
+.tbadge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 3px; font-family: var(--font-data); font-size: 10px; font-weight: 700; letter-spacing: .05em; }
+.tb-up { background: rgba(52,211,153,.08); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+.tb-dn { background: rgba(240,96,96,.08);  color: var(--red);   border: 1px solid rgba(240,96,96,.2); }
+.tb-sw { background: rgba(124,106,247,.08);color: var(--purple); border: 1px solid rgba(124,106,247,.2); }
 
-.kpi-row   { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
-.kpi-rlabel { font-family: var(--font-data); font-size: 10px; color: var(--text-muted); }
-.kpi-rval  { font-family: var(--font-data); font-size: 11px; font-weight: 500; }
-.pos { color: var(--green); }
-.neg { color: var(--red); }
-.neu { color: var(--text-secondary); }
+/* ── Stat pills ── */
+.pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill { background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: var(--r); padding: 7px 12px; }
+.pill-l { font-family: var(--font-data); font-size: 9px; color: var(--text-lo); letter-spacing: .08em; text-transform: uppercase; }
+.pill-v { font-family: var(--font-data); font-size: 14px; font-weight: 700; margin-top: 2px; }
 
-.kpi-sep { border: none; border-top: 1px solid var(--border-dim); margin: 8px 0; }
+/* ── Heatmap ── */
+.hm-wrap { overflow-x: auto; }
+.hm { border-collapse: collapse; min-width: 340px; font-family: var(--font-data); }
+.hm th { padding: 7px 9px; font-size: 9px; color: var(--text-lo); font-weight: 500; text-align: center; letter-spacing: .05em; }
+.hm th.rh { text-align: right; color: var(--text-mid); padding-right: 12px; }
+.hm-cell { width: 64px; height: 48px; text-align: center; vertical-align: middle; font-size: 11px; font-weight: 600; border: 2px solid var(--bg-panel); border-radius: 3px; transition: transform 100ms; cursor: default; }
+.hm-cell:hover { transform: scale(1.12); z-index: 1; position: relative; }
 
-/* ─── Panel Card ─────────────────────────────────────────────────────── */
-.panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-dim);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border-dim);
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.panel-title { font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--text-primary); letter-spacing: .08em; }
-.panel-sub   { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-.panel-body  { padding: 18px; }
-.panel-meta  { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+/* ── Advanced Charts tabs ── */
+.chart-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.chart-tab { padding: 5px 12px; border-radius: var(--r); border: 1px solid var(--border-mid); font-family: var(--font-data); font-size: 10px; color: var(--text-mid); transition: all 120ms; }
+.chart-tab:hover { border-color: var(--border-hi); color: var(--text-hi); }
+.chart-tab.on { background: rgba(124,106,247,.12); border-color: var(--purple); color: var(--purple); font-weight: 600; }
 
-.legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 10px; color: var(--text-secondary); }
-.legend-line { width: 18px; height: 2px; border-radius: 1px; }
-
-/* ─── Stat Pills ─────────────────────────────────────────────────────── */
-.stat-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-.stat-pill  {
-  background: var(--bg-card);
-  border: 1px solid var(--border-dim);
-  border-radius: var(--radius);
-  padding: 8px 14px;
-}
-.stat-pill-label { font-family: var(--font-data); font-size: 9px; color: var(--text-muted); letter-spacing: .08em; text-transform: uppercase; }
-.stat-pill-val   { font-family: var(--font-data); font-size: 15px; font-weight: 700; margin-top: 2px; }
-
-/* ─── Trend badge ────────────────────────────────────────────────────── */
-.trend-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 3px;
-  font-family: var(--font-data);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .06em;
-}
-.t-up  { background: rgba(52,211,153,.08); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
-.t-dn  { background: rgba(240,96,96,.08);  color: var(--red);   border: 1px solid rgba(240,96,96,.2); }
-.t-sw  { background: rgba(124,106,247,.08);color: var(--purple); border: 1px solid rgba(124,106,247,.2); }
-
-/* ─── Heatmap ────────────────────────────────────────────────────────── */
-.heatmap-wrap { overflow-x: auto; }
-.heatmap {
-  border-collapse: collapse;
-  min-width: 360px;
-  font-family: var(--font-data);
-}
-.heatmap th {
-  padding: 8px 10px;
-  font-size: 9px;
-  color: var(--text-muted);
-  font-weight: 500;
-  text-align: center;
-  letter-spacing: .06em;
-}
-.heatmap th.rh { text-align: right; color: var(--text-secondary); padding-right: 14px; }
-.hm-cell {
-  width: 70px;
-  height: 52px;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 12px;
-  font-weight: 600;
-  border: 2px solid var(--bg-panel);
-  border-radius: 3px;
-  transition: transform 100ms;
-  cursor: default;
-}
-.hm-cell:hover { transform: scale(1.1); z-index: 1; position: relative; }
-.hm-diag { opacity: .7; }
-
-/* ─── Loading / Empty ────────────────────────────────────────────────── */
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 240px;
-  gap: 10px;
-  color: var(--text-muted);
-  font-family: var(--font-data);
-  font-size: 11px;
-}
-.spinner {
-  width: 20px; height: 20px;
-  border: 2px solid var(--border-mid);
-  border-top-color: var(--teal);
-  border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
+/* ── Loading / Empty ── */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px; gap: 10px; color: var(--text-lo); font-family: var(--font-data); font-size: 11px; }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border-mid); border-top-color: var(--teal); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── Auth Screen ────────────────────────────────────────────────────── */
-.auth-screen {
-  position: fixed; inset: 0;
-  background: var(--bg-void);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-.auth-box {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-mid);
-  border-radius: 10px;
-  padding: 36px 32px;
-  width: 340px;
-}
-.auth-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 28px;
-}
-.auth-title { font-family: var(--font-data); font-size: 13px; font-weight: 700; color: var(--teal); letter-spacing: .12em; }
-.auth-ver   { font-family: var(--font-data); font-size: 9px; color: var(--text-muted); margin-top: 2px; letter-spacing: .06em; }
-
-.field { margin-bottom: 14px; }
-.field label { display: block; font-family: var(--font-data); font-size: 9px; color: var(--text-muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; }
-.field input {
-  width: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius);
-  padding: 9px 11px;
-  color: var(--text-primary);
-  font-family: var(--font-data);
-  font-size: 12px;
-  outline: none;
-}
+/* ── Auth ── */
+.auth-wrap { position: fixed; inset: 0; background: var(--bg-void); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.auth-box { background: var(--bg-panel); border: 1px solid var(--border-mid); border-radius: 10px; padding: 34px 30px; width: 330px; }
+.auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+.auth-title { font-family: var(--font-data); font-size: 12px; font-weight: 700; color: var(--teal); letter-spacing: .12em; }
+.auth-ver   { font-family: var(--font-data); font-size: 9px; color: var(--text-lo); margin-top: 2px; letter-spacing: .06em; }
+.field { margin-bottom: 13px; }
+.field label { display: block; font-family: var(--font-data); font-size: 9px; color: var(--text-lo); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; }
+.field input { width: 100%; background: var(--bg-card); border: 1px solid var(--border-mid); border-radius: var(--r); padding: 9px 11px; color: var(--text-hi); font-family: var(--font-data); font-size: 12px; outline: none; }
 .field input:focus { border-color: var(--teal); }
-
-.btn-login {
-  width: 100%;
-  background: var(--teal);
-  color: var(--bg-void);
-  font-family: var(--font-data);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 10px;
-  border-radius: var(--radius);
-  letter-spacing: .08em;
-  transition: background 120ms;
-  margin-top: 4px;
-}
-.btn-login:hover    { background: var(--teal-d); }
-.btn-login:disabled { opacity: .5; cursor: not-allowed; }
-.auth-hint   { text-align: center; font-family: var(--font-data); font-size: 10px; color: var(--text-muted); margin-top: 14px; }
+.btn-login { width: 100%; background: var(--teal); color: var(--bg-void); font-family: var(--font-data); font-size: 12px; font-weight: 700; padding: 10px; border-radius: var(--r); letter-spacing: .08em; transition: background 120ms; margin-top: 4px; }
+.btn-login:hover { background: var(--teal-d); }
+.auth-hint { text-align: center; font-family: var(--font-data); font-size: 10px; color: var(--text-lo); margin-top: 14px; }
 .auth-hint em { color: var(--teal); font-style: normal; }
-.err-msg { background: rgba(240,96,96,.08); border: 1px solid rgba(240,96,96,.2); border-radius: var(--radius); padding: 8px 11px; font-family: var(--font-data); font-size: 11px; color: var(--red); margin-bottom: 14px; }
+.err { background: rgba(240,96,96,.08); border: 1px solid rgba(240,96,96,.2); border-radius: var(--r); padding: 8px 11px; font-family: var(--font-data); font-size: 11px; color: var(--red); margin-bottom: 13px; }
 
-/* ─── Forecast horizon control ───────────────────────────────────────── */
-.horizon-ctrl {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-data);
-  font-size: 10px;
-  color: var(--text-muted);
-}
-.horizon-ctrl input {
-  width: 68px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius);
-  padding: 5px 8px;
-  color: var(--text-primary);
-  font-family: var(--font-data);
-  font-size: 11px;
-  text-align: center;
-  outline: none;
-}
-.horizon-ctrl input:focus { border-color: var(--teal); }
-
-/* ─── Responsive ─────────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  :root { --sidebar-w: 52px; }
-  .page-header { padding: 12px 16px 10px; flex-direction: column; align-items: flex-start; gap: 8px; }
-  .page-body   { padding: 14px 16px; }
-}
+/* ── Horizon input ── */
+.hz-ctrl { display: flex; align-items: center; gap: 7px; font-family: var(--font-data); font-size: 10px; color: var(--text-lo); }
+.hz-ctrl input { width: 62px; background: var(--bg-card); border: 1px solid var(--border-mid); border-radius: var(--r); padding: 5px 8px; color: var(--text-hi); font-family: var(--font-data); font-size: 11px; text-align: center; outline: none; }
+.hz-ctrl input:focus { border-color: var(--teal); }
 </style>
 </head>
 <body>
 <div id="root"></div>
-
 <script>
-/* ================================================================
-   CONFIG
-   ================================================================ */
+/* ── Config ── */
 const API = 'http://localhost:8000';
 
-/* ================================================================
-   PLOTLY THEME
-   ================================================================ */
-const PLY_LAYOUT = {
-  paper_bgcolor: 'transparent',
-  plot_bgcolor:  'transparent',
-  font: { family: "'JetBrains Mono', monospace", color: '#7A9BB8', size: 10 },
+/* ── Plotly theme ── */
+const PLY = {
+  paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+  font: { family: "'JetBrains Mono',monospace", color: '#7A9BB8', size: 10 },
   margin: { t: 8, r: 12, b: 36, l: 58 },
   xaxis: { gridcolor: '#1C2A3E', linecolor: '#1E2E42', tickcolor: '#1E2E42', zeroline: false },
   yaxis: { gridcolor: '#1C2A3E', linecolor: '#1E2E42', tickcolor: '#1E2E42', zeroline: false },
   legend: { bgcolor: 'transparent', font: { size: 10 } },
-  hoverlabel: { bgcolor: '#162032', bordercolor: '#2A3F58', font: { family: "'JetBrains Mono', monospace", size: 11 } },
+  hoverlabel: { bgcolor: '#162032', bordercolor: '#2A3F58', font: { family: "'JetBrains Mono',monospace", size: 11 } },
 };
-const PLY_CFG = { displayModeBar: false, responsive: true };
+const CFG = { displayModeBar: false, responsive: true };
 
-/* ================================================================
-   STATE
-   ================================================================ */
+/* ── State ── */
 const S = {
-  token:      localStorage.getItem('mat_tok') || null,
-  view:       'kpi',      // kpi | trend | corr | forecast
-  assets:     [],
-  kpis:       [],
-  ticker:     null,
-  trendData:  null,
-  corrData:   null,
-  fcData:     null,
-  horizon:    30,
-  busy:       {},
-  err:        null,
+  token: localStorage.getItem('mat_tok') || null,
+  view: 'kpi',
+  assets: [], kpis: [],
+  ticker: null,
+  trendData: null, corrData: null, fcData: null,
+  horizon: 30,
+  busy: {},
+  err: null,
+  // KPI filter
+  kpiFilter: 'ALL',
+  // Trend controls
+  chartType: 'line',    // line | candlestick | ohlc
+  timeframe: '1y',      // 1h | 4h | 6m | 1y | 2y | all
+  intradayData: null,
+  intradayInterval: null,
+  // Advanced chart
+  advChart: 'stacked-bar',  // stacked-bar | histogram | bubble | scatter | radar
 };
 
-function set(patch, skipRender) {
-  Object.assign(S, patch);
-  if (!skipRender) render();
-}
+function set(patch) { Object.assign(S, patch); render(); }
 
-/* ================================================================
-   API
-   ================================================================ */
+/* ── API ── */
 async function api(path, opts = {}) {
-  const hdrs = { 'Content-Type': 'application/json' };
-  if (S.token) hdrs['Authorization'] = `Bearer ${S.token}`;
-  const r = await fetch(API + path, { ...opts, headers: hdrs });
+  const h = { 'Content-Type': 'application/json' };
+  if (S.token) h['Authorization'] = `Bearer ${S.token}`;
+  const r = await fetch(API + path, { ...opts, headers: h });
   if (r.status === 401) { doLogout(); return null; }
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   return r.json();
 }
 
-async function doLogin(user, pass) {
-  const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: user, password: pass }) });
-  if (data?.access_token) {
-    localStorage.setItem('mat_tok', data.access_token);
-    set({ token: data.access_token, err: null });
-    await bootstrap();
+async function doLogin(u, p) {
+  const d = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
+  if (d?.access_token) {
+    localStorage.setItem('mat_tok', d.access_token);
+    set({ token: d.access_token, err: null });
+    await boot();
   }
 }
-
 function doLogout() {
   localStorage.removeItem('mat_tok');
   set({ token: null, kpis: [], assets: [], ticker: null, trendData: null, corrData: null, fcData: null });
 }
-
-async function bootstrap() {
+async function boot() {
   set({ busy: { kpi: true } });
   try {
-    const [assets, kpis] = await Promise.all([
-      api('/api/kpi/assets/list'),
-      api('/api/kpi/'),
-    ]);
+    const [assets, kpis] = await Promise.all([api('/api/kpi/assets/list'), api('/api/kpi/')]);
     const first = kpis?.[0]?.ticker || null;
     set({ assets: assets || [], kpis: kpis || [], busy: {}, ticker: first });
     if (first) await loadTrend(first);
   } catch (e) { set({ busy: {}, err: e.message }); }
 }
-
 async function loadTrend(ticker) {
   set({ busy: { trend: true }, trendData: null });
   try {
-    const d = await api(`/api/trend/${encodeURIComponent(ticker)}`);
+    const d = await api(`/api/trend/${enc(ticker)}`);
     set({ busy: {}, trendData: d, ticker });
   } catch (e) { set({ busy: {}, err: e.message }); }
 }
-
 async function loadCorr() {
   if (S.corrData) return;
   set({ busy: { corr: true } });
+  try { const d = await api('/api/correlation/'); set({ busy: {}, corrData: d }); }
+  catch (e) { set({ busy: {}, err: e.message }); }
+}
+async function loadIntraday(ticker, interval) {
+  set({ busy: { trend: true }, intradayData: null, intradayInterval: interval });
   try {
-    const d = await api('/api/correlation/');
-    set({ busy: {}, corrData: d });
+    const d = await api(`/api/intraday/${enc(ticker)}?interval=${interval}`);
+    set({ busy: {}, intradayData: d, ticker });
   } catch (e) { set({ busy: {}, err: e.message }); }
 }
-
-async function loadForecast(ticker, days) {
+async function loadFc(ticker, days) {
   set({ busy: { fc: true }, fcData: null });
   try {
-    const d = await api(`/api/forecast/${encodeURIComponent(ticker)}?horizon_days=${days}`);
+    const d = await api(`/api/forecast/${enc(ticker)}?horizon_days=${days}`);
     set({ busy: {}, fcData: d, ticker });
   } catch (e) { set({ busy: {}, err: e.message }); }
 }
 
-/* ================================================================
-   FORMATTERS
-   ================================================================ */
-const fmtPx  = v => !v && v !== 0 ? '—' : v > 100
-  ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  : v.toFixed(5);
-const fmtPct = v => !v && v !== 0 ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
-const fmtVol = v => !v ? '—' : v > 1e9 ? (v/1e9).toFixed(1)+'B' : v > 1e6 ? (v/1e6).toFixed(1)+'M' : v > 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(0);
-const shortSym = t => t.replace('=X','').replace('-USD','');
-const catCls   = c => ({ forex:'cat-forex', crypto:'cat-crypto', commodity:'cat-commodity' }[c] || 'cat-forex');
+/* ── Helpers ── */
+const enc = t => encodeURIComponent(t);
+const fmtPx  = v => !v && v !== 0 ? '—' : v > 100 ? v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : v.toFixed(5);
+const fmtPct = v => !v && v !== 0 ? '—' : `${v>=0?'+':''}${v.toFixed(2)}%`;
+const sym    = t => t.replace('=X','').replace('-USD','');
+const catCls = c => ({forex:'c-forex',crypto:'c-crypto',commodity:'c-comm'}[c]||'c-forex');
+const catLabel = c => ({forex:'FOREX',crypto:'CRYPTO',commodity:'COMM'}[c]||'FX');
 
-/* ================================================================
-   CORRELATION COLOR
-   ================================================================ */
 function corrBg(v) {
-  if (v >= 0) {
-    const t = v;
-    return `rgb(${Math.round(22+30*t)},${Math.round(45+166*t)},${Math.round(62+37*(1-t))})`;
-  }
-  const t = -v;
-  return `rgb(${Math.round(22+226*t)},${Math.round(45+68*(1-t))},${Math.round(62+51*(1-t))})`;
+  if (v >= 0) return `rgb(${Math.round(22+30*v)},${Math.round(45+166*v)},${Math.round(62+37*(1-v))})`;
+  const t = -v; return `rgb(${Math.round(22+226*t)},${Math.round(45+68*(1-t))},${Math.round(62+51*(1-t))})`;
 }
 const corrFg = v => Math.abs(v) > 0.35 ? '#D4E2F0' : '#7A9BB8';
 
-/* ================================================================
-   SIDEBAR MATRIX (signature)
-   ================================================================ */
-function buildMatrix() {
-  const nums = ['1.0823','0.7241','3.2891','145.23','1923.4','43521','0.6182','2.0041','1.1042','0.9871'];
-  const cols = [];
-  for (let i = 0; i < 3; i++) {
-    const x = 4 + i * 20;
-    const delay = (i * 2.1).toFixed(1);
-    const dur   = (8 + i * 3).toFixed(1);
-    const items = Array.from({ length: 12 }, (_, j) => `<span>${nums[(i*4+j)%nums.length]}</span>`).join('');
-    cols.push(`<div class="matrix-col" style="left:${x}px;animation-duration:${dur}s;animation-delay:-${delay}s">${items}</div>`);
-  }
-  return cols.join('');
+/* ── Timeframe filter (daily bars only) ── */
+function filterByTimeframe(bars) {
+  if (!bars || !bars.length) return bars;
+  if (S.timeframe === 'all' || S.timeframe === '1h' || S.timeframe === '4h') return bars;
+  const months = S.timeframe === '6m' ? 6 : S.timeframe === '1y' ? 12 : 24;
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+  return bars.filter(b => new Date(b.date) >= cutoff);
 }
 
-/* ================================================================
-   RENDER SECTIONS
-   ================================================================ */
+/* ── Is intraday timeframe selected? ── */
+const isIntraday = () => S.timeframe === '1h' || S.timeframe === '4h';
+
+/* ── KPI category filter ── */
+function filteredKPIs() {
+  if (S.kpiFilter === 'ALL') return S.kpis;
+  return S.kpis.filter(k => {
+    const a = S.assets.find(x => x.ticker === k.ticker);
+    if (!a) return false;
+    if (S.kpiFilter === 'FOREX') return a.category === 'forex';
+    if (S.kpiFilter === 'CRYPTO') return a.category === 'crypto';
+    if (S.kpiFilter === 'COMMODITIES') return a.category === 'commodity';
+    return true;
+  });
+}
+
+/* ── Group KPIs by market ── */
+function groupKPIs(kpis) {
+  const groups = {};
+  kpis.forEach(k => {
+    const a = S.assets.find(x => x.ticker === k.ticker);
+    const cat = a?.category || 'forex';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push({ ...k, _cat: cat });
+  });
+  return groups;
+}
+
+/* ── Sidebar matrix ── */
+function buildMatrix() {
+  const nums = ['1.0823','0.7241','3.2891','145.23','1923.4','43521','0.6182','2.0041'];
+  return [0,1,2].map(i => {
+    const items = Array.from({length:14},(_,j)=>`<span>${nums[(i*4+j)%nums.length]}</span>`).join('');
+    return `<div class="sb-col" style="left:${5+i*18}px;animation-duration:${9+i*3}s;animation-delay:-${i*2.3}s">${items}</div>`;
+  }).join('');
+}
+
+/* ── Render: Tape ── */
 function renderTape() {
   if (!S.kpis.length) return '<div class="tape"></div>';
-  const items = [...S.kpis, ...S.kpis].map(k => {
-    const cls = k.change_pct_1d >= 0 ? 'up' : 'dn';
-    const arr = k.change_pct_1d >= 0 ? '▲' : '▼';
-    return `<div class="tape-item">
-      <span class="tape-sym">${shortSym(k.ticker)}</span>
-      <span class="tape-px">${fmtPx(k.latest_close)}</span>
-      <span class="tape-chg ${cls}">${arr} ${fmtPct(k.change_pct_1d)}</span>
-    </div>`;
+  const items = [...S.kpis,...S.kpis].map(k => {
+    const up = k.change_pct_1d >= 0;
+    return `<div class="tape-item"><span class="t-sym">${sym(k.ticker)}</span><span class="t-px">${fmtPx(k.latest_close)}</span><span class="${up?'t-up':'t-dn'}">${up?'▲':'▼'} ${fmtPct(k.change_pct_1d)}</span></div>`;
   }).join('');
   return `<div class="tape"><div class="tape-inner">${items}</div></div>`;
 }
 
+/* ── Render: Sidebar ── */
 function renderSidebar() {
   const navs = [
-    { id: 'kpi',      icon: '▦', label: 'KPI' },
-    { id: 'trend',    icon: '∿', label: 'TREND' },
-    { id: 'corr',     icon: '⊞', label: 'CORR' },
-    { id: 'forecast', icon: '◎', label: 'FCST' },
+    {id:'kpi',icon:'▦',label:'KPI'},
+    {id:'trend',icon:'∿',label:'TREND'},
+    {id:'corr',icon:'⊞',label:'CORR'},
+    {id:'forecast',icon:'◎',label:'FCST'},
+    {id:'advanced',icon:'⬡',label:'CHARTS'},
   ];
-  return `
-  <nav class="sidebar">
-    <div class="sidebar-matrix">${buildMatrix()}</div>
-    ${navs.map(n => `
-      <button class="nav-btn ${S.view === n.id ? 'active' : ''}" onclick="switchView('${n.id}')" title="${n.label}">
-        <span class="nav-icon">${n.icon}</span>
-        <span class="nav-label">${n.label}</span>
-      </button>`).join('')}
-    <div class="sidebar-spacer"></div>
-    <button class="sidebar-logout" onclick="doLogout()" title="Disconnect">✕</button>
+  return `<nav class="sidebar">
+    <div class="sb-matrix">${buildMatrix()}</div>
+    ${navs.map(n=>`<button class="nav-btn ${S.view===n.id?'active':''}" onclick="switchView('${n.id}')" title="${n.label}"><span class="nav-icon">${n.icon}</span><span class="nav-label">${n.label}</span></button>`).join('')}
+    <div class="sb-spacer"></div>
+    <button class="sb-logout" onclick="doLogout()" title="Disconnect">✕</button>
   </nav>`;
 }
 
+/* ── Render: KPI view ── */
 function renderKPI() {
-  if (S.busy.kpi) return `<div class="empty"><div class="spinner"></div><span>Loading market data…</span></div>`;
+  if (S.busy.kpi) return `<div class="ph"><div class="ph-title"><div class="live-dot"></div>KPI OVERVIEW</div></div><div class="pb"><div class="empty"><div class="spinner"></div><span>Loading market data…</span></div></div>`;
+
+  const filtered = filteredKPIs();
+  const groups   = groupKPIs(filtered);
+  const catOrder = ['forex','crypto','commodity'];
+  const catNames = {forex:'Forex',crypto:'Crypto',commodity:'Commodities'};
+
+  const cards = catOrder.map(cat => {
+    if (!groups[cat] || !groups[cat].length) return '';
+    const label = S.kpiFilter === 'ALL' ? `<div class="mkt-label">${catNames[cat]}</div>` : '';
+    const cardHTML = groups[cat].map(k => {
+      const isSel = k.ticker === S.ticker;
+      return `<div class="kpi-card ${isSel?'sel':''}" onclick="pickTicker('${k.ticker}')">
+        <div class="kpi-head"><span class="kpi-sym">${sym(k.ticker)}</span><span class="kpi-cat ${catCls(k._cat)}">${catLabel(k._cat)}</span></div>
+        <div class="kpi-name">${k.name}</div>
+        <div class="kpi-price">${fmtPx(k.latest_close)}</div>
+        <div class="kpi-row"><span class="kpi-rl">1D</span><span class="kpi-rv ${k.change_pct_1d>=0?'pos':'neg'}">${fmtPct(k.change_pct_1d)}</span></div>
+        <div class="kpi-row"><span class="kpi-rl">7D</span><span class="kpi-rv ${k.change_pct_7d>=0?'pos':'neg'}">${fmtPct(k.change_pct_7d)}</span></div>
+        <div class="kpi-row"><span class="kpi-rl">30D</span><span class="kpi-rv ${k.change_pct_30d>=0?'pos':'neg'}">${fmtPct(k.change_pct_30d)}</span></div>
+        <hr class="sep">
+        <div class="kpi-row"><span class="kpi-rl">VOL 30D</span><span class="kpi-rv neu">${k.volatility_30d.toFixed(2)}%</span></div>
+        <div class="kpi-row"><span class="kpi-rl">52W H</span><span class="kpi-rv neu">${fmtPx(k.high_52w)}</span></div>
+        <div class="kpi-row"><span class="kpi-rl">52W L</span><span class="kpi-rv neu">${fmtPx(k.low_52w)}</span></div>
+      </div>`;
+    }).join('');
+    return `${label}<div class="kpi-grid" style="margin-bottom:${S.kpiFilter==='ALL'?'18px':'0'}">${cardHTML}</div>`;
+  }).join('');
+
   return `
-  <div class="page-header">
-    <div class="page-title"><div class="live-dot"></div>KPI OVERVIEW</div>
-    <div class="page-controls" style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${S.kpis.length} instruments · ${new Date().toUTCString().slice(0,16)} UTC</div>
-  </div>
-  <div class="page-body">
-    <div class="kpi-grid">
-      ${S.kpis.map(k => {
-        const asset = S.assets.find(a => a.ticker === k.ticker);
-        const cat   = asset?.category || 'forex';
-        const isSel = k.ticker === S.ticker;
-        return `<div class="kpi-card ${isSel ? 'active' : ''}" onclick="pickTicker('${k.ticker}')">
-          <div class="kpi-head">
-            <div class="kpi-sym">${shortSym(k.ticker)}</div>
-            <span class="kpi-cat ${catCls(cat)}">${cat.toUpperCase()}</span>
-          </div>
-          <div class="kpi-name">${k.name}</div>
-          <div class="kpi-price">${fmtPx(k.latest_close)}</div>
-          <div class="kpi-row"><span class="kpi-rlabel">1D</span><span class="kpi-rval ${k.change_pct_1d>=0?'pos':'neg'}">${fmtPct(k.change_pct_1d)}</span></div>
-          <div class="kpi-row"><span class="kpi-rlabel">7D</span><span class="kpi-rval ${k.change_pct_7d>=0?'pos':'neg'}">${fmtPct(k.change_pct_7d)}</span></div>
-          <div class="kpi-row"><span class="kpi-rlabel">30D</span><span class="kpi-rval ${k.change_pct_30d>=0?'pos':'neg'}">${fmtPct(k.change_pct_30d)}</span></div>
-          <hr class="kpi-sep">
-          <div class="kpi-row"><span class="kpi-rlabel">VOL 30D</span><span class="kpi-rval neu">${k.volatility_30d.toFixed(2)}%</span></div>
-          <div class="kpi-row"><span class="kpi-rlabel">52W H</span><span class="kpi-rval neu">${fmtPx(k.high_52w)}</span></div>
-          <div class="kpi-row"><span class="kpi-rlabel">52W L</span><span class="kpi-rval neu">${fmtPx(k.low_52w)}</span></div>
-        </div>`;
-      }).join('')}
+  <div class="ph">
+    <div class="ph-title"><div class="live-dot"></div>KPI OVERVIEW <span style="color:var(--text-lo);font-weight:400;font-size:10px">· ${filtered.length} instruments</span></div>
+    <div class="ph-right">
+      <div class="cat-tabs">
+        ${['ALL','FOREX','CRYPTO','COMMODITIES'].map(c=>`<button class="cat-tab ${S.kpiFilter===c?`on ${c.toLowerCase().replace('commodities','comm')}-on`:''}" onclick="setKpiFilter('${c}')">${c}</button>`).join('')}
+      </div>
     </div>
-  </div>`;
+  </div>
+  <div class="pb">${cards || '<div class="empty"><span>No instruments in this category.</span></div>'}</div>`;
 }
 
-function renderTrendView() {
-  const tDir = S.trendData?.trend_direction;
-  const tCls = { up:'t-up', down:'t-dn', sideways:'t-sw' }[tDir] || 't-sw';
-  const tIco = { up:'▲', down:'▼', sideways:'◆' }[tDir] || '◆';
+/* ── Render: Trend view ── */
+function renderTrend() {
+  const intra = isIntraday();
+  const d     = intra ? S.intradayData : S.trendData;
+  const tDir  = d?.trend_direction;
+  const tCls  = {up:'tb-up',down:'tb-dn',sideways:'tb-sw'}[tDir]||'tb-sw';
+  const tIco  = {up:'▲',down:'▼',sideways:'◆'}[tDir]||'◆';
+  const bars  = intra ? d?.bars : (d ? filterByTimeframe(d.bars) : null);
+  const isLoading = intra ? S.busy.trend && S.intradayInterval === S.timeframe : S.busy.trend;
 
   return `
-  <div class="page-header">
-    <div class="page-title"><div class="live-dot"></div>PRICE TREND</div>
-    <div class="page-controls">
-      <select class="select-ctrl" onchange="pickTicker(this.value)">
-        ${S.assets.map(a => `<option value="${a.ticker}" ${a.ticker === S.ticker ? 'selected' : ''}>${shortSym(a.ticker)} — ${a.name}</option>`).join('')}
+  <div class="ph">
+    <div class="ph-title"><div class="live-dot"></div>PRICE TREND</div>
+    <div class="ph-right">
+      <select class="sel" onchange="pickTicker(this.value)">
+        ${S.assets.map(a=>`<option value="${a.ticker}" ${a.ticker===S.ticker?'selected':''}>${sym(a.ticker)} — ${a.name}</option>`).join('')}
       </select>
     </div>
   </div>
-  <div class="page-body">
-    ${S.busy.trend
-      ? `<div class="empty"><div class="spinner"></div><span>Computing trend…</span></div>`
-      : S.trendData
-        ? `<div class="panel">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">${S.trendData.ticker} — Linear Trend + Moving Averages</div>
-                <div class="panel-sub">${S.trendData.bars.length} daily bars · OLS slope ${S.trendData.trend_slope>0?'+':''}${S.trendData.trend_slope.toFixed(6)} · R²=${S.trendData.r_squared}</div>
-              </div>
-              <div class="panel-meta">
-                <span class="trend-badge ${tCls}">${tIco} ${tDir?.toUpperCase()}</span>
-                <div class="legend-item"><div class="legend-line" style="background:#00C896"></div>Close</div>
-                <div class="legend-item"><div class="legend-line" style="background:#7C6AF7;border-top:1px dashed #7C6AF7;background:none"></div>MA-20</div>
-                <div class="legend-item"><div class="legend-line" style="border-top:2px dashed #F0B429;background:none"></div>MA-50</div>
-              </div>
+  <div class="pb">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span style="font-family:var(--font-data);font-size:10px;color:var(--text-lo)">CHART TYPE</span>
+      ${[['line','Line'],['candlestick','Candlestick'],['ohlc','OHLC Bar']].map(([v,l])=>`<button class="btn ${S.chartType===v?'on':''}" onclick="setChartType('${v}')">${l}</button>`).join('')}
+      <span style="margin-left:8px;font-family:var(--font-data);font-size:10px;color:var(--text-lo)">TIMEFRAME</span>
+      ${[['1h','1H'],['4h','4H'],['6m','6M'],['1y','1Y'],['2y','2Y'],['all','ALL']].map(([v,l])=>`<button class="btn ${S.timeframe===v?'amber':''}" onclick="setTimeframe('${v}')">${l}</button>`).join('')}
+    </div>
+    ${isLoading
+      ? `<div class="empty"><div class="spinner"></div><span>${intra?'Fetching intraday data…':'Computing trend…'}</span></div>`
+      : d && bars ? `<div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">${d.ticker} — ${intra ? S.timeframe.toUpperCase()+' Intraday' : 'Trend Analysis'}</div>
+              <div class="panel-sub">OLS slope ${d.trend_slope>0?'+':''}${d.trend_slope.toFixed(6)} · R²=${d.r_squared} · ${bars.length} bars · scroll/pinch to zoom</div>
             </div>
-            <div class="panel-body">
-              <div id="trend-plot" style="height:320px"></div>
+            <div class="panel-meta">
+              <span class="tbadge ${tCls}">${tIco} ${tDir?.toUpperCase()}</span>
+              <div class="leg"><div class="leg-line" style="background:#00C896"></div>Close</div>
+              <div class="leg"><div class="leg-line" style="background:#7C6AF7;border-top:1px dashed #7C6AF7;background:none"></div>MA-20</div>
+              <div class="leg"><div class="leg-line" style="border-top:2px dashed #F0B429;background:none"></div>MA-50</div>
             </div>
-          </div>`
-        : `<div class="empty"><span>Select an asset to load trend data.</span></div>`
+          </div>
+          <div class="panel-body"><div id="trend-plot" style="height:360px"></div></div>
+        </div>`
+      : `<div class="empty"><span>Select an asset to load trend data.</span></div>`
     }
   </div>`;
 }
 
-function renderCorrView() {
-  if (S.busy.corr) return `
-    <div class="page-header"><div class="page-title"><div class="live-dot"></div>CORRELATION MATRIX</div></div>
-    <div class="page-body"><div class="empty"><div class="spinner"></div><span>Computing correlation…</span></div></div>`;
-
-  if (!S.corrData) return `
-    <div class="page-header"><div class="page-title"><div class="live-dot"></div>CORRELATION MATRIX</div></div>
-    <div class="page-body"><div class="empty"><span>No data.</span></div></div>`;
+/* ── Render: Correlation view ── */
+function renderCorr() {
+  if (S.busy.corr) return `<div class="ph"><div class="ph-title"><div class="live-dot"></div>CORRELATION MATRIX</div></div><div class="pb"><div class="empty"><div class="spinner"></div><span>Computing…</span></div></div>`;
+  if (!S.corrData) return `<div class="ph"><div class="ph-title"><div class="live-dot"></div>CORRELATION MATRIX</div></div><div class="pb"><div class="empty"><span>No data.</span></div></div>`;
 
   const { tickers, matrix } = S.corrData;
-  const thead = `<tr><th class="rh"></th>${tickers.map(t => `<th>${shortSym(t)}</th>`).join('')}</tr>`;
-  const tbody = tickers.map((rt, i) =>
-    `<tr><th class="rh">${shortSym(rt)}</th>${matrix[i].map((v,j) =>
-      `<td class="hm-cell${i===j?' hm-diag':''}" style="background:${corrBg(v)};color:${corrFg(v)}" title="${shortSym(rt)} × ${shortSym(tickers[j])} = ${v.toFixed(4)}">${v.toFixed(2)}</td>`
-    ).join('')}</tr>`
-  ).join('');
+  const thead = `<tr><th class="rh"></th>${tickers.map(t=>`<th>${sym(t)}</th>`).join('')}</tr>`;
+  const tbody = tickers.map((rt,i)=>`<tr><th class="rh">${sym(rt)}</th>${matrix[i].map((v,j)=>`<td class="hm-cell${i===j?' hm-diag':''}" style="background:${corrBg(v)};color:${corrFg(v)}" title="${sym(rt)} × ${sym(tickers[j])} = ${v.toFixed(4)}">${v.toFixed(2)}</td>`).join('')}</tr>`).join('');
 
   return `
-  <div class="page-header">
-    <div class="page-title"><div class="live-dot"></div>CORRELATION MATRIX</div>
-    <div class="page-controls" style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${S.corrData.start_date} → ${S.corrData.end_date} · Pearson · daily log-returns</div>
+  <div class="ph">
+    <div class="ph-title"><div class="live-dot"></div>CORRELATION MATRIX</div>
+    <div class="ph-right" style="font-family:var(--font-data);font-size:10px;color:var(--text-lo)">${S.corrData.start_date} → ${S.corrData.end_date} · Pearson · log-returns</div>
   </div>
-  <div class="page-body">
+  <div class="pb">
     <div class="panel">
       <div class="panel-head">
-        <div>
-          <div class="panel-title">PAIRWISE ASSET CORRELATIONS</div>
-          <div class="panel-sub">Values range from −1 (inverse) to +1 (perfect correlation)</div>
-        </div>
+        <div><div class="panel-title">PAIRWISE ASSET CORRELATIONS</div><div class="panel-sub">Daily log-returns · −1 (inverse) to +1 (perfect)</div></div>
         <div class="panel-meta">
-          <div class="legend-item">
-            <div style="width:60px;height:10px;border-radius:2px;background:linear-gradient(90deg,#F06060,#162032,#34D399)"></div>
-            <span>−1 → 0 → +1</span>
-          </div>
+          <div class="leg"><div style="width:56px;height:9px;border-radius:2px;background:linear-gradient(90deg,#F06060,#162032,#34D399)"></div><span>−1 → +1</span></div>
         </div>
       </div>
-      <div class="panel-body">
-        <div class="heatmap-wrap"><table class="heatmap"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>
-      </div>
+      <div class="panel-body"><div class="hm-wrap"><table class="hm"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>
     </div>
   </div>`;
 }
 
-function renderForecastView() {
+/* ── Render: Forecast view ── */
+function renderForecast() {
+  const f = S.fcData;
   return `
-  <div class="page-header">
-    <div class="page-title"><div class="live-dot"></div>PRICE FORECAST</div>
-    <div class="page-controls">
-      <select class="select-ctrl" onchange="pickTickerFc(this.value)">
-        ${S.assets.map(a => `<option value="${a.ticker}" ${a.ticker === S.ticker ? 'selected' : ''}>${shortSym(a.ticker)} — ${a.name}</option>`).join('')}
+  <div class="ph">
+    <div class="ph-title"><div class="live-dot"></div>PRICE FORECAST</div>
+    <div class="ph-right">
+      <select class="sel" onchange="pickTickerFc(this.value)">
+        ${S.assets.map(a=>`<option value="${a.ticker}" ${a.ticker===S.ticker?'selected':''}>${sym(a.ticker)} — ${a.name}</option>`).join('')}
       </select>
-      <div class="horizon-ctrl">
-        <span>Horizon</span>
-        <input type="number" min="5" max="180" value="${S.horizon}" onchange="changeHorizon(this.value)" />
-        <span>days</span>
-      </div>
+      <div class="hz-ctrl"><span>Horizon</span><input type="number" min="5" max="180" value="${S.horizon}" onchange="changeHz(this.value)"/><span>days</span></div>
     </div>
   </div>
-  <div class="page-body">
+  <div class="pb">
     ${S.busy.fc
       ? `<div class="empty"><div class="spinner"></div><span>Running forecast model…</span></div>`
-      : S.fcData
-        ? `<div class="panel">
-            <div class="panel-head">
-              <div>
-                <div class="panel-title">${S.fcData.ticker} — ${S.fcData.model_used.replace('_',' ').toUpperCase()}</div>
-                <div class="panel-sub">Forecast horizon: ${S.fcData.horizon_days} business days · Shaded = 80% prediction interval</div>
-              </div>
-              <div class="stat-pills">
-                <div class="stat-pill">
-                  <div class="stat-pill-label">MAE</div>
-                  <div class="stat-pill-val" style="color:var(--amber)">${S.fcData.mae.toFixed(5)}</div>
-                </div>
-                <div class="stat-pill">
-                  <div class="stat-pill-label">RMSE</div>
-                  <div class="stat-pill-val" style="color:var(--purple)">${S.fcData.rmse.toFixed(5)}</div>
-                </div>
-                <div class="stat-pill">
-                  <div class="stat-pill-label">MODEL</div>
-                  <div class="stat-pill-val" style="color:var(--teal);font-size:11px">${S.fcData.model_used.replace('_',' ')}</div>
-                </div>
-              </div>
+      : f ? `<div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">${f.ticker} — ${f.model_used.replace('_',' ').toUpperCase()}</div><div class="panel-sub">Horizon: ${f.horizon_days} business days · shaded = 80% prediction interval</div></div>
+            <div class="pills">
+              <div class="pill"><div class="pill-l">MAE</div><div class="pill-v" style="color:var(--amber)">${f.mae.toFixed(5)}</div></div>
+              <div class="pill"><div class="pill-l">RMSE</div><div class="pill-v" style="color:var(--purple)">${f.rmse.toFixed(5)}</div></div>
+              <div class="pill"><div class="pill-l">MODEL</div><div class="pill-v" style="color:var(--teal);font-size:11px">${f.model_used.replace('_',' ')}</div></div>
             </div>
-            <div class="panel-body">
-              <div id="fc-plot" style="height:320px"></div>
-            </div>
-          </div>`
-        : `<div class="empty"><span>Select an asset to generate a forecast.</span></div>`
+          </div>
+          <div class="panel-body"><div id="fc-plot" style="height:340px"></div></div>
+        </div>`
+      : `<div class="empty"><span>Select an asset to generate a forecast.</span></div>`
     }
   </div>`;
 }
 
-function renderAuth() {
+/* ── Render: Advanced Charts ── */
+function renderAdvanced() {
+  const charts = [
+    ['stacked-bar','Stacked Bar'],['histogram','Histogram'],
+    ['bubble','Bubble Chart'],['scatter','Scatter Plot'],['radar','Radar Chart'],
+  ];
   return `
-  <div class="auth-screen">
-    <div class="auth-box">
-      <div class="auth-brand">
-        <div class="live-dot"></div>
-        <div>
-          <div class="auth-title">MARKET ANALYTICS TERMINAL</div>
-          <div class="auth-ver">SYSTEM v1.0 · SECURE ACCESS</div>
-        </div>
-      </div>
-      ${S.err ? `<div class="err-msg">⚠ ${S.err}</div>` : ''}
-      <div class="field"><label>Username</label><input id="au" type="text" value="admin" /></div>
-      <div class="field"><label>Password</label><input id="ap" type="password" value="dashboard123" /></div>
-      <button class="btn-login" onclick="tryLogin()">CONNECT →</button>
-      <div class="auth-hint">Demo: <em>admin</em> / <em>dashboard123</em></div>
+  <div class="ph">
+    <div class="ph-title"><div class="live-dot"></div>ADVANCED CHARTS</div>
+    <div class="ph-right">
+      <select class="sel" onchange="pickTickerAdv(this.value)">
+        ${S.assets.map(a=>`<option value="${a.ticker}" ${a.ticker===S.ticker?'selected':''}>${sym(a.ticker)} — ${a.name}</option>`).join('')}
+      </select>
     </div>
+  </div>
+  <div class="pb">
+    <div class="chart-tabs">
+      ${charts.map(([v,l])=>`<button class="chart-tab ${S.advChart===v?'on':''}" onclick="setAdvChart('${v}')">${l}</button>`).join('')}
+    </div>
+    ${S.busy.trend
+      ? `<div class="empty"><div class="spinner"></div><span>Loading data…</span></div>`
+      : S.trendData
+        ? `<div class="panel"><div class="panel-head"><div class="panel-title">${S.trendData.ticker} — ${charts.find(c=>c[0]===S.advChart)?.[1] || ''}</div></div><div class="panel-body"><div id="adv-plot" style="height:380px"></div></div></div>`
+        : `<div class="empty"><span>Select an asset to view charts.</span></div>`
+    }
   </div>`;
 }
 
-/* ================================================================
-   MAIN RENDER
-   ================================================================ */
+/* ── Auth ── */
+function renderAuth() {
+  return `<div class="auth-wrap"><div class="auth-box">
+    <div class="auth-brand"><div class="live-dot"></div><div><div class="auth-title">MARKET ANALYTICS TERMINAL</div><div class="auth-ver">SYSTEM v1.0 · SECURE ACCESS</div></div></div>
+    ${S.err?`<div class="err">⚠ ${S.err}</div>`:''}
+    <div class="field"><label>Username</label><input id="au" type="text" value="admin"/></div>
+    <div class="field"><label>Password</label><input id="ap" type="password" value="dashboard123"/></div>
+    <button class="btn-login" onclick="tryLogin()">CONNECT →</button>
+    <div class="auth-hint">Demo: <em>admin</em> / <em>dashboard123</em></div>
+  </div></div>`;
+}
+
+/* ── Main Render ── */
 function render() {
   const root = document.getElementById('root');
-
-  if (!S.token) {
-    root.innerHTML = renderAuth();
-    document.getElementById('ap')?.addEventListener('keydown', e => e.key === 'Enter' && tryLogin());
-    return;
-  }
-
-  const viewHTML = {
-    kpi:      renderKPI(),
-    trend:    renderTrendView(),
-    corr:     renderCorrView(),
-    forecast: renderForecastView(),
-  }[S.view] || '';
-
-  root.innerHTML = `
-  <div class="app">
-    ${renderTape()}
-    ${renderSidebar()}
-    <div class="content">${viewHTML}</div>
-  </div>`;
-
-  // Mount Plotly after DOM update
-  requestAnimationFrame(() => {
-    if (S.view === 'trend' && S.trendData) mountTrend();
-    if (S.view === 'forecast' && S.fcData) mountForecast();
+  if (!S.token) { root.innerHTML = renderAuth(); document.getElementById('ap')?.addEventListener('keydown',e=>e.key==='Enter'&&tryLogin()); return; }
+  const views = {kpi:renderKPI,trend:renderTrend,corr:renderCorr,forecast:renderForecast,advanced:renderAdvanced};
+  root.innerHTML = `<div class="app">${renderTape()}${renderSidebar()}<div class="content">${(views[S.view]||renderKPI)()}</div></div>`;
+  requestAnimationFrame(()=>{
+    if (S.view==='trend' && (S.trendData || S.intradayData)) mountTrend();
+    if (S.view==='forecast' && S.fcData) mountFc();
+    if (S.view==='advanced' && S.trendData) mountAdv();
   });
 }
 
-/* ================================================================
-   PLOTLY MOUNTS
-   ================================================================ */
+/* ── Plotly Mounts ── */
 function mountTrend() {
-  const el = document.getElementById('trend-plot');
-  if (!el) return;
-  const b = S.trendData.bars;
-  Plotly.newPlot(el, [
-    { x: b.map(r=>r.date), y: b.map(r=>r.close), name:'Close', type:'scatter', mode:'lines', line:{color:'#00C896',width:1.5} },
-    { x: b.map(r=>r.date), y: b.map(r=>r.ma_20),  name:'MA-20', type:'scatter', mode:'lines', line:{color:'#7C6AF7',width:1.5,dash:'dot'} },
-    { x: b.map(r=>r.date), y: b.map(r=>r.ma_50),  name:'MA-50', type:'scatter', mode:'lines', line:{color:'#F0B429',width:1.5,dash:'dash'} },
-  ], { ...PLY_LAYOUT, showlegend:true }, PLY_CFG);
+  const el = document.getElementById('trend-plot'); if (!el) return;
+  const intra = isIntraday();
+  const d     = intra ? S.intradayData : S.trendData;
+  if (!d) return;
+
+  // Use datetime for intraday, date for daily
+  const bars   = intra ? d.bars : filterByTimeframe(d.bars);
+  const xField = intra ? 'datetime' : 'date';
+  const xVals  = bars.map(b => b[xField]);
+
+  const traces = [];
+  if (S.chartType === 'candlestick') {
+    traces.push({ type:'candlestick', x:xVals, open:bars.map(b=>b.open), high:bars.map(b=>b.high), low:bars.map(b=>b.low), close:bars.map(b=>b.close), name:'OHLC', increasing:{line:{color:'#34D399'}}, decreasing:{line:{color:'#F06060'}} });
+  } else if (S.chartType === 'ohlc') {
+    traces.push({ type:'ohlc', x:xVals, open:bars.map(b=>b.open), high:bars.map(b=>b.high), low:bars.map(b=>b.low), close:bars.map(b=>b.close), name:'OHLC', increasing:{line:{color:'#34D399'}}, decreasing:{line:{color:'#F06060'}} });
+  } else {
+    traces.push({ x:xVals, y:bars.map(b=>b.close), name:'Close', type:'scatter', mode:'lines', line:{color:'#00C896',width:1.5} });
+  }
+  traces.push({ x:xVals, y:bars.map(b=>b.ma_20), name:'MA-20', type:'scatter', mode:'lines', line:{color:'#7C6AF7',width:1.5,dash:'dot'} });
+  traces.push({ x:xVals, y:bars.map(b=>b.ma_50), name:'MA-50', type:'scatter', mode:'lines', line:{color:'#F0B429',width:1.5,dash:'dash'} });
+
+  const cfg = {
+    ...CFG,
+    scrollZoom: true,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ['select2d','lasso2d','autoScale2d'],
+    displaylogo: false,
+  };
+  Plotly.newPlot(el, traces, {...PLY, showlegend:true, dragmode:'zoom'}, cfg);
 }
 
-function mountForecast() {
-  const el = document.getElementById('fc-plot');
-  if (!el) return;
+function mountFc() {
+  const el = document.getElementById('fc-plot'); if (!el) return;
+  const f  = S.fcData;
   const actual = S.trendData?.bars || [];
-  const fc     = S.fcData;
-  const fDates = fc.forecast.map(p=>p.date);
-  const fPred  = fc.forecast.map(p=>p.predicted);
-  const fLo    = fc.forecast.map(p=>p.lower);
-  const fHi    = fc.forecast.map(p=>p.upper);
-  const bandX  = [...fDates, ...fDates.slice().reverse()];
-  const bandY  = [...fHi, ...fLo.slice().reverse()];
-
-  Plotly.newPlot(el, [
-    { x: actual.map(b=>b.date), y: actual.map(b=>b.close), name:'Actual', type:'scatter', mode:'lines', line:{color:'#00C896',width:1.5} },
-    { x: bandX, y: bandY, name:'80% interval', type:'scatter', mode:'none', fill:'toself', fillcolor:'rgba(240,180,41,0.10)', line:{width:0} },
-    { x: fDates, y: fPred, name:'Forecast', type:'scatter', mode:'lines', line:{color:'#F0B429',width:2,dash:'dot'} },
-  ], {
-    ...PLY_LAYOUT,
-    showlegend: true,
-    shapes: [{ type:'line', x0:actual.at(-1)?.date, x1:actual.at(-1)?.date, y0:0, y1:1, yref:'paper', line:{color:'#2A3F58',width:1,dash:'dot'} }],
-  }, PLY_CFG);
+  const fDates = f.forecast.map(p=>p.date);
+  const fPred  = f.forecast.map(p=>p.predicted);
+  const bandX  = [...fDates,...fDates.slice().reverse()];
+  const bandY  = [...f.forecast.map(p=>p.upper),...f.forecast.map(p=>p.lower).reverse()];
+  Plotly.newPlot(el,[
+    {x:actual.map(b=>b.date),y:actual.map(b=>b.close),name:'Actual',type:'scatter',mode:'lines',line:{color:'#00C896',width:1.5}},
+    {x:bandX,y:bandY,name:'80% interval',type:'scatter',mode:'none',fill:'toself',fillcolor:'rgba(240,180,41,0.10)',line:{width:0}},
+    {x:fDates,y:fPred,name:'Forecast',type:'scatter',mode:'lines',line:{color:'#F0B429',width:2,dash:'dot'}},
+  ],{...PLY,showlegend:true,shapes:[{type:'line',x0:actual.at(-1)?.date,x1:actual.at(-1)?.date,y0:0,y1:1,yref:'paper',line:{color:'#2A3F58',width:1,dash:'dot'}}]},CFG);
 }
 
-/* ================================================================
-   HANDLERS
-   ================================================================ */
+function mountAdv() {
+  const el = document.getElementById('adv-plot'); if (!el) return;
+  const bars  = filterByTimeframe(S.trendData.bars);
+  const kpi   = S.kpis.find(k=>k.ticker===S.ticker);
+  const allKpis = S.kpis;
+
+  if (S.advChart === 'stacked-bar') {
+    // Monthly OHLC grouped bar
+    const months = {}; bars.forEach(b=>{ const m=b.date.slice(0,7); if(!months[m]) months[m]={open:b.open,high:b.high,low:b.low,close:b.close}; else { months[m].high=Math.max(months[m].high,b.high); months[m].low=Math.min(months[m].low,b.low); months[m].close=b.close; } });
+    const mx=Object.keys(months); const mv=Object.values(months);
+    Plotly.newPlot(el,[
+      {x:mx,y:mv.map(m=>m.open), name:'Open',  type:'bar',marker:{color:'#7C6AF7'}},
+      {x:mx,y:mv.map(m=>m.close),name:'Close', type:'bar',marker:{color:'#00C896'}},
+      {x:mx,y:mv.map(m=>m.high), name:'High',  type:'bar',marker:{color:'#34D399'}},
+      {x:mx,y:mv.map(m=>m.low),  name:'Low',   type:'bar',marker:{color:'#F06060'}},
+    ],{...PLY,barmode:'group',showlegend:true},CFG);
+
+  } else if (S.advChart === 'histogram') {
+    // Daily return distribution
+    const returns = bars.slice(1).map((b,i)=>((b.close-bars[i].close)/bars[i].close*100));
+    Plotly.newPlot(el,[{x:returns,type:'histogram',nbinsx:40,name:'Daily Returns %',marker:{color:'#7C6AF7',line:{color:'#5A4AD7',width:1}}}],{...PLY,showlegend:false,xaxis:{...PLY.xaxis,title:'Return (%)'},yaxis:{...PLY.yaxis,title:'Frequency'}},CFG);
+
+  } else if (S.advChart === 'bubble') {
+    // Volatility vs 30D return bubble chart — all assets
+    const x=[], y=[], sz=[], txt=[], clr=[];
+    allKpis.forEach(k=>{ x.push(k.volatility_30d); y.push(k.change_pct_30d); sz.push(Math.max(8,Math.abs(k.change_pct_30d)*2)); txt.push(sym(k.ticker)); clr.push(k.change_pct_30d>=0?'#34D399':'#F06060'); });
+    Plotly.newPlot(el,[{x,y,mode:'markers+text',type:'scatter',text:txt,textposition:'top center',marker:{size:sz,color:clr,opacity:.8,line:{color:'#1C2A3E',width:1}},name:'Assets'}],{...PLY,showlegend:false,xaxis:{...PLY.xaxis,title:'Volatility 30D (%)'},yaxis:{...PLY.yaxis,title:'Return 30D (%)'},shapes:[{type:'line',x0:0,x1:0,y0:0,y1:1,yref:'paper',line:{color:'#2A3F58',width:1,dash:'dot'}},{type:'line',x0:0,x1:1,xref:'paper',y0:0,y1:0,line:{color:'#2A3F58',width:1,dash:'dot'}}]},CFG);
+
+  } else if (S.advChart === 'scatter') {
+    // Close vs MA-20 scatter
+    const validBars = bars.filter(b=>b.ma_20);
+    Plotly.newPlot(el,[{x:validBars.map(b=>b.ma_20),y:validBars.map(b=>b.close),mode:'markers',type:'scatter',marker:{color:validBars.map(b=>b.close>=b.ma_20?'#34D399':'#F06060'),size:4,opacity:.7},name:'Price vs MA-20'}],{...PLY,showlegend:false,xaxis:{...PLY.xaxis,title:'MA-20'},yaxis:{...PLY.yaxis,title:'Close Price'}},CFG);
+
+  } else if (S.advChart === 'radar') {
+    // Multi-metric radar for selected asset vs others
+    if (!kpi) return;
+    // Normalise metrics 0-100 across all assets
+    const norm = (v,arr) => { const mn=Math.min(...arr),mx=Math.max(...arr); return mx===mn?50:(v-mn)/(mx-mn)*100; };
+    const metrics = ['volatility_30d','change_pct_1d','change_pct_7d','change_pct_30d'];
+    const mLabels = ['Volatility','1D Return','7D Return','30D Return'];
+    const vals = metrics.map(m=>{ const arr=allKpis.map(k=>k[m]); return norm(kpi[m],arr); });
+    Plotly.newPlot(el,[{type:'scatterpolar',r:[...vals,vals[0]],theta:[...mLabels,mLabels[0]],fill:'toself',fillcolor:'rgba(0,200,150,0.1)',line:{color:'#00C896'},name:sym(S.ticker)}],{...PLY,polar:{bgcolor:'transparent',radialaxis:{visible:true,range:[0,100],color:'#3A5070',gridcolor:'#1E2E42'},angularaxis:{color:'#7A9BB8',gridcolor:'#1E2E42'}},showlegend:false},CFG);
+  }
+}
+
+/* ── Event handlers ── */
 function tryLogin() {
-  const u = document.getElementById('au')?.value?.trim();
-  const p = document.getElementById('ap')?.value;
-  if (!u || !p) return;
-  set({ err: null });
-  doLogin(u, p).catch(e => set({ err: e.message }));
+  const u=document.getElementById('au')?.value?.trim(), p=document.getElementById('ap')?.value;
+  if (!u||!p) return;
+  set({err:null});
+  doLogin(u,p).catch(e=>set({err:e.message}));
 }
-
 function switchView(v) {
-  set({ view: v });
-  if (v === 'corr' && !S.corrData) loadCorr();
-  if (v === 'forecast' && S.ticker && !S.fcData) loadForecast(S.ticker, S.horizon);
-  if (v === 'trend' && S.ticker && !S.trendData) loadTrend(S.ticker);
+  set({view:v});
+  if (v==='corr' && !S.corrData) loadCorr();
+  if (v==='forecast' && S.ticker && !S.fcData) loadFc(S.ticker,S.horizon);
+  if ((v==='trend'||v==='advanced') && S.ticker && !S.trendData) loadTrend(S.ticker);
 }
-
-function pickTicker(t) {
-  set({ ticker: t, trendData: null, view: 'trend' });
-  loadTrend(t);
+function pickTicker(t)    { set({ticker:t,trendData:null,view:'trend'}); loadTrend(t); }
+function pickTickerFc(t)  { set({ticker:t,fcData:null});   loadFc(t,S.horizon); }
+function pickTickerAdv(t) { set({ticker:t,trendData:null}); loadTrend(t); }
+function changeHz(v)      { const d=Math.max(5,Math.min(180,parseInt(v)||30)); S.horizon=d; if(S.ticker) loadFc(S.ticker,d); }
+function setKpiFilter(f)  { set({kpiFilter:f}); }
+function setChartType(t)  { set({chartType:t}); }
+function setTimeframe(t)  {
+  set({timeframe:t});
+  if ((t === '1h' || t === '4h') && S.ticker) loadIntraday(S.ticker, t);
 }
+function setAdvChart(c)   { set({advChart:c}); }
 
-function pickTickerFc(t) {
-  set({ ticker: t, fcData: null });
-  loadForecast(t, S.horizon);
-}
-
-function changeHorizon(v) {
-  const d = Math.max(5, Math.min(180, parseInt(v) || 30));
-  S.horizon = d;
-  if (S.ticker) loadForecast(S.ticker, d);
-}
-
-/* ================================================================
-   BOOT
-   ================================================================ */
+/* ── Boot ── */
 render();
-if (S.token) bootstrap();
+if (S.token) boot();
 </script>
 </body>
 </html>
