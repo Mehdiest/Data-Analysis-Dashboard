@@ -5,6 +5,16 @@ PostgreSQL + SQLAlchemy · pandas · statsmodels · scikit-learn · Prophet
 
 ---
 
+## 🚀 Key Features
+
+- **Multi-Asset Ingestion:** Automating data pipelines for 32+ instruments including Major/Minor Forex pairs, Crypto assets, Stablecoins, Precious Metals, and Energy commodities via `yfinance`.
+- **Advanced Trend Analytics:** Real-time OLS (Ordinary Least Squares) linear trend regression scoring slopes, $R^2$ values, and dynamically computing 20-day and 50-day Moving Averages (MA).
+- **Pairwise Correlation Heatmaps:** Generates interactive Pearson correlation matrices based on daily log-returns across all cross-asset history.
+- **Predictive Forecasting Engine:** Implements time-series forecasting models (Prophet / Rolling Regressions) estimating price action with 80% confidence prediction intervals.
+- **JWT Authenticated Terminal:** Secure endpoint access with stateful sessions and custom styling tokens built for high-density visualization.
+
+---
+
 ## Quick start
 
 ### 1. Prerequisites
