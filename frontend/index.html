@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Market Analytics Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+<style>
+/* ─── Design Tokens ─────────────────────────────────────────────────── */
+:root {
+  --bg-void:     #080C14;
+  --bg-base:     #0F1923;
+  --bg-panel:    #162032;
+  --bg-card:     #1C2A3E;
+  --bg-hover:    #223048;
+
+  --border-dim:  #1E2E42;
+  --border-mid:  #2A3F58;
+  --border-hi:   #3A5070;
+
+  --text-primary:   #D4E2F0;
+  --text-secondary: #7A9BB8;
+  --text-muted:     #3A5070;
+  --text-dim:       #263848;
+
+  --teal:    #00C896;
+  --teal-d:  #009E78;
+  --teal-bg: rgba(0,200,150,0.08);
+  --amber:   #F0B429;
+  --amber-bg:rgba(240,180,41,0.08);
+  --purple:  #7C6AF7;
+  --red:     #F06060;
+  --green:   #34D399;
+
+  --font-data: 'JetBrains Mono', 'Courier New', monospace;
+  --font-ui:   'Inter', system-ui, sans-serif;
+
+  --sidebar-w: 64px;
+  --radius:    6px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
+input, select { font-family: inherit; }
+
+/* ─── App Shell ──────────────────────────────────────────────────────── */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: 36px 1fr;
+  height: 100vh;
+}
+
+/* ─── Ticker Tape ────────────────────────────────────────────────────── */
+.tape {
+  grid-column: 1 / -1;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-dim);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+.tape::before, .tape::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+.tape::before { left: 0; background: linear-gradient(90deg, var(--bg-base) 30%, transparent); }
+.tape::after  { right: 0; background: linear-gradient(-90deg, var(--bg-base) 30%, transparent); }
+.tape-inner {
+  display: flex;
+  white-space: nowrap;
+  animation: tape-scroll 50s linear infinite;
+}
+@keyframes tape-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tape-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 20px;
+  border-right: 1px solid var(--border-dim);
+  font-family: var(--font-data);
+  font-size: 11px;
+}
+.tape-sym { color: var(--teal); font-weight: 600; letter-spacing: .06em; }
+.tape-px  { color: var(--text-primary); }
+.tape-chg { font-size: 10px; }
+.up  { color: var(--green); }
+.dn  { color: var(--red);   }
+
+/* ─── Sidebar ────────────────────────────────────────────────────────── */
+.sidebar {
+  grid-row: 2;
+  background: var(--bg-base);
+  border-right: 1px solid var(--border-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Signature: animated market numbers in sidebar background */
+.sidebar-matrix {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.04;
+}
+.matrix-col {
+  position: absolute;
+  top: 0;
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--teal);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: matrix-fall linear infinite;
+}
+@keyframes matrix-fall {
+  0%   { transform: translateY(-100%); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+.nav-btn {
+  width: 44px; height: 44px;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-muted);
+  transition: background 120ms, color 120ms;
+  position: relative;
+}
+.nav-btn:hover { background: var(--bg-panel); color: var(--text-secondary); }
+.nav-btn.active { background: var(--teal-bg); color: var(--teal); }
+.nav-btn.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 2px; height: 22px;
+  background: var(--teal);
+  border-radius: 0 2px 2px 0;
+}
+.nav-icon { font-size: 16px; line-height: 1; }
+.nav-label { font-size: 8px; font-family: var(--font-data); letter-spacing: .05em; }
+
+.sidebar-spacer { flex: 1; }
+.sidebar-logout {
+  width: 44px; height: 44px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 16px;
+  transition: background 120ms, color 120ms;
+}
+.sidebar-logout:hover { background: rgba(240,96,96,.1); color: var(--red); }
+
+/* ─── Content Area ───────────────────────────────────────────────────── */
+.content {
+  grid-row: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+/* ─── Page Header ────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
+.page-title {
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: .1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px var(--teal);
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .4; }
+}
+.page-controls { display: flex; align-items: center; gap: 8px; }
+
+.select-ctrl {
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  color: var(--text-primary);
+  font-family: var(--font-data);
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+}
+.select-ctrl:focus { border-color: var(--teal); }
+
+.btn-ctrl {
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-mid);
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--text-secondary);
+  transition: all 120ms;
+}
+.btn-ctrl:hover { border-color: var(--teal); color: var(--teal); }
+.btn-ctrl.primary { background: var(--teal); color: var(--bg-void); border-color: var(--teal); font-weight: 600; }
+.btn-ctrl.primary:hover { background: var(--teal-d); }
+
+/* ─── Main Padding ───────────────────────────────────────────────────── */
+.page-body { padding: 20px 24px; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+/* ─── KPI Grid ───────────────────────────────────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--teal);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.kpi-card:hover { border-color: var(--border-hi); background: var(--bg-hover); }
+.kpi-card:hover::after { opacity: .5; }
+.kpi-card.active { border-color: var(--teal); background: rgba(0,200,150,.04); }
+.kpi-card.active::after { opacity: 1; }
+
+.kpi-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.kpi-sym { font-family: var(--font-data); font-size: 11px; font-weight: 700; color: var(--teal); letter-spacing: .08em; }
+.kpi-cat {
+  font-family: var(--font-data);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: .05em;
+}
+.cat-forex     { background: rgba(56,189,248,.1); color: #38BDF8; border: 1px solid rgba(56,189,248,.2); }
+.cat-crypto    { background: rgba(124,106,247,.1); color: var(--purple); border: 1px solid rgba(124,106,247,.2); }
+.cat-commodity { background: rgba(240,180,41,.1); color: var(--amber); border: 1px solid rgba(240,180,41,.2); }
+
+.kpi-price { font-family: var(--font-data); font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -.02em; margin-bottom: 10px; }
+.kpi-name  { font-size: 10px; color: var(--text-muted); margin-bottom: 8px; }
+
+.kpi-row   { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+.kpi-rlabel { font-family: var(--font-data); font-size: 10px; color: var(--text-muted); }
+.kpi-rval  { font-family: var(--font-data); font-size: 11px; font-weight: 500; }
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+.neu { color: var(--text-secondary); }
+
+.kpi-sep { border: none; border-top: 1px solid var(--border-dim); margin: 8px 0; }
+
+/* ─── Panel Card ─────────────────────────────────────────────────────── */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-dim);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.panel-title { font-family: var(--font-data); font-size: 11px; font-weight: 600; color: var(--text-primary); letter-spacing: .08em; }
+.panel-sub   { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.panel-body  { padding: 18px; }
+.panel-meta  { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+.legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--font-data); font-size: 10px; color: var(--text-secondary); }
+.legend-line { width: 18px; height: 2px; border-radius: 1px; }
+
+/* ─── Stat Pills ─────────────────────────────────────────────────────── */
+.stat-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat-pill  {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+}
+.stat-pill-label { font-family: var(--font-data); font-size: 9px; color: var(--text-muted); letter-spacing: .08em; text-transform: uppercase; }
+.stat-pill-val   { font-family: var(--font-data); font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+/* ─── Trend badge ────────────────────────────────────────────────────── */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+.t-up  { background: rgba(52,211,153,.08); color: var(--green); border: 1px solid rgba(52,211,153,.2); }
+.t-dn  { background: rgba(240,96,96,.08);  color: var(--red);   border: 1px solid rgba(240,96,96,.2); }
+.t-sw  { background: rgba(124,106,247,.08);color: var(--purple); border: 1px solid rgba(124,106,247,.2); }
+
+/* ─── Heatmap ────────────────────────────────────────────────────────── */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap {
+  border-collapse: collapse;
+  min-width: 360px;
+  font-family: var(--font-data);
+}
+.heatmap th {
+  padding: 8px 10px;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: .06em;
+}
+.heatmap th.rh { text-align: right; color: var(--text-secondary); padding-right: 14px; }
+.hm-cell {
+  width: 70px;
+  height: 52px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid var(--bg-panel);
+  border-radius: 3px;
+  transition: transform 100ms;
+  cursor: default;
+}
+.hm-cell:hover { transform: scale(1.1); z-index: 1; position: relative; }
+.hm-diag { opacity: .7; }
+
+/* ─── Loading / Empty ────────────────────────────────────────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  gap: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-data);
+  font-size: 11px;
+}
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border-mid);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Auth Screen ────────────────────────────────────────────────────── */
+.auth-screen {
+  position: fixed; inset: 0;
+  background: var(--bg-void);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.auth-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-mid);
+  border-radius: 10px;
+  padding: 36px 32px;
+  width: 340px;
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.auth-title { font-family: var(--font-data); font-size: 13px; font-weight: 700; color: var(--teal); letter-spacing: .12em; }
+.auth-ver   { font-family: var(--font-data); font-size: 9px; color: var(--text-muted); margin-top: 2px; letter-spacing: .06em; }
+
+.field { margin-bottom: 14px; }
+.field label { display: block; font-family: var(--font-data); font-size: 9px; color: var(--text-muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; }
+.field input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  padding: 9px 11px;
+  color: var(--text-primary);
+  font-family: var(--font-data);
+  font-size: 12px;
+  outline: none;
+}
+.field input:focus { border-color: var(--teal); }
+
+.btn-login {
+  width: 100%;
+  background: var(--teal);
+  color: var(--bg-void);
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: var(--radius);
+  letter-spacing: .08em;
+  transition: background 120ms;
+  margin-top: 4px;
+}
+.btn-login:hover    { background: var(--teal-d); }
+.btn-login:disabled { opacity: .5; cursor: not-allowed; }
+.auth-hint   { text-align: center; font-family: var(--font-data); font-size: 10px; color: var(--text-muted); margin-top: 14px; }
+.auth-hint em { color: var(--teal); font-style: normal; }
+.err-msg { background: rgba(240,96,96,.08); border: 1px solid rgba(240,96,96,.2); border-radius: var(--radius); padding: 8px 11px; font-family: var(--font-data); font-size: 11px; color: var(--red); margin-bottom: 14px; }
+
+/* ─── Forecast horizon control ───────────────────────────────────────── */
+.horizon-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.horizon-ctrl input {
+  width: 68px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  padding: 5px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-data);
+  font-size: 11px;
+  text-align: center;
+  outline: none;
+}
+.horizon-ctrl input:focus { border-color: var(--teal); }
+
+/* ─── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  :root { --sidebar-w: 52px; }
+  .page-header { padding: 12px 16px 10px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .page-body   { padding: 14px 16px; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ================================================================
+   CONFIG
+   ================================================================ */
+const API = 'http://localhost:8000';
+
+/* ================================================================
+   PLOTLY THEME
+   ================================================================ */
+const PLY_LAYOUT = {
+  paper_bgcolor: 'transparent',
+  plot_bgcolor:  'transparent',
+  font: { family: "'JetBrains Mono', monospace", color: '#7A9BB8', size: 10 },
+  margin: { t: 8, r: 12, b: 36, l: 58 },
+  xaxis: { gridcolor: '#1C2A3E', linecolor: '#1E2E42', tickcolor: '#1E2E42', zeroline: false },
+  yaxis: { gridcolor: '#1C2A3E', linecolor: '#1E2E42', tickcolor: '#1E2E42', zeroline: false },
+  legend: { bgcolor: 'transparent', font: { size: 10 } },
+  hoverlabel: { bgcolor: '#162032', bordercolor: '#2A3F58', font: { family: "'JetBrains Mono', monospace", size: 11 } },
+};
+const PLY_CFG = { displayModeBar: false, responsive: true };
+
+/* ================================================================
+   STATE
+   ================================================================ */
+const S = {
+  token:      localStorage.getItem('mat_tok') || null,
+  view:       'kpi',      // kpi | trend | corr | forecast
+  assets:     [],
+  kpis:       [],
+  ticker:     null,
+  trendData:  null,
+  corrData:   null,
+  fcData:     null,
+  horizon:    30,
+  busy:       {},
+  err:        null,
+};
+
+function set(patch, skipRender) {
+  Object.assign(S, patch);
+  if (!skipRender) render();
+}
+
+/* ================================================================
+   API
+   ================================================================ */
+async function api(path, opts = {}) {
+  const hdrs = { 'Content-Type': 'application/json' };
+  if (S.token) hdrs['Authorization'] = `Bearer ${S.token}`;
+  const r = await fetch(API + path, { ...opts, headers: hdrs });
+  if (r.status === 401) { doLogout(); return null; }
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function doLogin(user, pass) {
+  const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: user, password: pass }) });
+  if (data?.access_token) {
+    localStorage.setItem('mat_tok', data.access_token);
+    set({ token: data.access_token, err: null });
+    await bootstrap();
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('mat_tok');
+  set({ token: null, kpis: [], assets: [], ticker: null, trendData: null, corrData: null, fcData: null });
+}
+
+async function bootstrap() {
+  set({ busy: { kpi: true } });
+  try {
+    const [assets, kpis] = await Promise.all([
+      api('/api/kpi/assets/list'),
+      api('/api/kpi/'),
+    ]);
+    const first = kpis?.[0]?.ticker || null;
+    set({ assets: assets || [], kpis: kpis || [], busy: {}, ticker: first });
+    if (first) await loadTrend(first);
+  } catch (e) { set({ busy: {}, err: e.message }); }
+}
+
+async function loadTrend(ticker) {
+  set({ busy: { trend: true }, trendData: null });
+  try {
+    const d = await api(`/api/trend/${encodeURIComponent(ticker)}`);
+    set({ busy: {}, trendData: d, ticker });
+  } catch (e) { set({ busy: {}, err: e.message }); }
+}
+
+async function loadCorr() {
+  if (S.corrData) return;
+  set({ busy: { corr: true } });
+  try {
+    const d = await api('/api/correlation/');
+    set({ busy: {}, corrData: d });
+  } catch (e) { set({ busy: {}, err: e.message }); }
+}
+
+async function loadForecast(ticker, days) {
+  set({ busy: { fc: true }, fcData: null });
+  try {
+    const d = await api(`/api/forecast/${encodeURIComponent(ticker)}?horizon_days=${days}`);
+    set({ busy: {}, fcData: d, ticker });
+  } catch (e) { set({ busy: {}, err: e.message }); }
+}
+
+/* ================================================================
+   FORMATTERS
+   ================================================================ */
+const fmtPx  = v => !v && v !== 0 ? '—' : v > 100
+  ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  : v.toFixed(5);
+const fmtPct = v => !v && v !== 0 ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+const fmtVol = v => !v ? '—' : v > 1e9 ? (v/1e9).toFixed(1)+'B' : v > 1e6 ? (v/1e6).toFixed(1)+'M' : v > 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(0);
+const shortSym = t => t.replace('=X','').replace('-USD','');
+const catCls   = c => ({ forex:'cat-forex', crypto:'cat-crypto', commodity:'cat-commodity' }[c] || 'cat-forex');
+
+/* ================================================================
+   CORRELATION COLOR
+   ================================================================ */
+function corrBg(v) {
+  if (v >= 0) {
+    const t = v;
+    return `rgb(${Math.round(22+30*t)},${Math.round(45+166*t)},${Math.round(62+37*(1-t))})`;
+  }
+  const t = -v;
+  return `rgb(${Math.round(22+226*t)},${Math.round(45+68*(1-t))},${Math.round(62+51*(1-t))})`;
+}
+const corrFg = v => Math.abs(v) > 0.35 ? '#D4E2F0' : '#7A9BB8';
+
+/* ================================================================
+   SIDEBAR MATRIX (signature)
+   ================================================================ */
+function buildMatrix() {
+  const nums = ['1.0823','0.7241','3.2891','145.23','1923.4','43521','0.6182','2.0041','1.1042','0.9871'];
+  const cols = [];
+  for (let i = 0; i < 3; i++) {
+    const x = 4 + i * 20;
+    const delay = (i * 2.1).toFixed(1);
+    const dur   = (8 + i * 3).toFixed(1);
+    const items = Array.from({ length: 12 }, (_, j) => `<span>${nums[(i*4+j)%nums.length]}</span>`).join('');
+    cols.push(`<div class="matrix-col" style="left:${x}px;animation-duration:${dur}s;animation-delay:-${delay}s">${items}</div>`);
+  }
+  return cols.join('');
+}
+
+/* ================================================================
+   RENDER SECTIONS
+   ================================================================ */
+function renderTape() {
+  if (!S.kpis.length) return '<div class="tape"></div>';
+  const items = [...S.kpis, ...S.kpis].map(k => {
+    const cls = k.change_pct_1d >= 0 ? 'up' : 'dn';
+    const arr = k.change_pct_1d >= 0 ? '▲' : '▼';
+    return `<div class="tape-item">
+      <span class="tape-sym">${shortSym(k.ticker)}</span>
+      <span class="tape-px">${fmtPx(k.latest_close)}</span>
+      <span class="tape-chg ${cls}">${arr} ${fmtPct(k.change_pct_1d)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="tape"><div class="tape-inner">${items}</div></div>`;
+}
+
+function renderSidebar() {
+  const navs = [
+    { id: 'kpi',      icon: '▦', label: 'KPI' },
+    { id: 'trend',    icon: '∿', label: 'TREND' },
+    { id: 'corr',     icon: '⊞', label: 'CORR' },
+    { id: 'forecast', icon: '◎', label: 'FCST' },
+  ];
+  return `
+  <nav class="sidebar">
+    <div class="sidebar-matrix">${buildMatrix()}</div>
+    ${navs.map(n => `
+      <button class="nav-btn ${S.view === n.id ? 'active' : ''}" onclick="switchView('${n.id}')" title="${n.label}">
+        <span class="nav-icon">${n.icon}</span>
+        <span class="nav-label">${n.label}</span>
+      </button>`).join('')}
+    <div class="sidebar-spacer"></div>
+    <button class="sidebar-logout" onclick="doLogout()" title="Disconnect">✕</button>
+  </nav>`;
+}
+
+function renderKPI() {
+  if (S.busy.kpi) return `<div class="empty"><div class="spinner"></div><span>Loading market data…</span></div>`;
+  return `
+  <div class="page-header">
+    <div class="page-title"><div class="live-dot"></div>KPI OVERVIEW</div>
+    <div class="page-controls" style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${S.kpis.length} instruments · ${new Date().toUTCString().slice(0,16)} UTC</div>
+  </div>
+  <div class="page-body">
+    <div class="kpi-grid">
+      ${S.kpis.map(k => {
+        const asset = S.assets.find(a => a.ticker === k.ticker);
+        const cat   = asset?.category || 'forex';
+        const isSel = k.ticker === S.ticker;
+        return `<div class="kpi-card ${isSel ? 'active' : ''}" onclick="pickTicker('${k.ticker}')">
+          <div class="kpi-head">
+            <div class="kpi-sym">${shortSym(k.ticker)}</div>
+            <span class="kpi-cat ${catCls(cat)}">${cat.toUpperCase()}</span>
+          </div>
+          <div class="kpi-name">${k.name}</div>
+          <div class="kpi-price">${fmtPx(k.latest_close)}</div>
+          <div class="kpi-row"><span class="kpi-rlabel">1D</span><span class="kpi-rval ${k.change_pct_1d>=0?'pos':'neg'}">${fmtPct(k.change_pct_1d)}</span></div>
+          <div class="kpi-row"><span class="kpi-rlabel">7D</span><span class="kpi-rval ${k.change_pct_7d>=0?'pos':'neg'}">${fmtPct(k.change_pct_7d)}</span></div>
+          <div class="kpi-row"><span class="kpi-rlabel">30D</span><span class="kpi-rval ${k.change_pct_30d>=0?'pos':'neg'}">${fmtPct(k.change_pct_30d)}</span></div>
+          <hr class="kpi-sep">
+          <div class="kpi-row"><span class="kpi-rlabel">VOL 30D</span><span class="kpi-rval neu">${k.volatility_30d.toFixed(2)}%</span></div>
+          <div class="kpi-row"><span class="kpi-rlabel">52W H</span><span class="kpi-rval neu">${fmtPx(k.high_52w)}</span></div>
+          <div class="kpi-row"><span class="kpi-rlabel">52W L</span><span class="kpi-rval neu">${fmtPx(k.low_52w)}</span></div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function renderTrendView() {
+  const tDir = S.trendData?.trend_direction;
+  const tCls = { up:'t-up', down:'t-dn', sideways:'t-sw' }[tDir] || 't-sw';
+  const tIco = { up:'▲', down:'▼', sideways:'◆' }[tDir] || '◆';
+
+  return `
+  <div class="page-header">
+    <div class="page-title"><div class="live-dot"></div>PRICE TREND</div>
+    <div class="page-controls">
+      <select class="select-ctrl" onchange="pickTicker(this.value)">
+        ${S.assets.map(a => `<option value="${a.ticker}" ${a.ticker === S.ticker ? 'selected' : ''}>${shortSym(a.ticker)} — ${a.name}</option>`).join('')}
+      </select>
+    </div>
+  </div>
+  <div class="page-body">
+    ${S.busy.trend
+      ? `<div class="empty"><div class="spinner"></div><span>Computing trend…</span></div>`
+      : S.trendData
+        ? `<div class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title">${S.trendData.ticker} — Linear Trend + Moving Averages</div>
+                <div class="panel-sub">${S.trendData.bars.length} daily bars · OLS slope ${S.trendData.trend_slope>0?'+':''}${S.trendData.trend_slope.toFixed(6)} · R²=${S.trendData.r_squared}</div>
+              </div>
+              <div class="panel-meta">
+                <span class="trend-badge ${tCls}">${tIco} ${tDir?.toUpperCase()}</span>
+                <div class="legend-item"><div class="legend-line" style="background:#00C896"></div>Close</div>
+                <div class="legend-item"><div class="legend-line" style="background:#7C6AF7;border-top:1px dashed #7C6AF7;background:none"></div>MA-20</div>
+                <div class="legend-item"><div class="legend-line" style="border-top:2px dashed #F0B429;background:none"></div>MA-50</div>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div id="trend-plot" style="height:320px"></div>
+            </div>
+          </div>`
+        : `<div class="empty"><span>Select an asset to load trend data.</span></div>`
+    }
+  </div>`;
+}
+
+function renderCorrView() {
+  if (S.busy.corr) return `
+    <div class="page-header"><div class="page-title"><div class="live-dot"></div>CORRELATION MATRIX</div></div>
+    <div class="page-body"><div class="empty"><div class="spinner"></div><span>Computing correlation…</span></div></div>`;
+
+  if (!S.corrData) return `
+    <div class="page-header"><div class="page-title"><div class="live-dot"></div>CORRELATION MATRIX</div></div>
+    <div class="page-body"><div class="empty"><span>No data.</span></div></div>`;
+
+  const { tickers, matrix } = S.corrData;
+  const thead = `<tr><th class="rh"></th>${tickers.map(t => `<th>${shortSym(t)}</th>`).join('')}</tr>`;
+  const tbody = tickers.map((rt, i) =>
+    `<tr><th class="rh">${shortSym(rt)}</th>${matrix[i].map((v,j) =>
+      `<td class="hm-cell${i===j?' hm-diag':''}" style="background:${corrBg(v)};color:${corrFg(v)}" title="${shortSym(rt)} × ${shortSym(tickers[j])} = ${v.toFixed(4)}">${v.toFixed(2)}</td>`
+    ).join('')}</tr>`
+  ).join('');
+
+  return `
+  <div class="page-header">
+    <div class="page-title"><div class="live-dot"></div>CORRELATION MATRIX</div>
+    <div class="page-controls" style="font-family:var(--font-data);font-size:10px;color:var(--text-muted)">${S.corrData.start_date} → ${S.corrData.end_date} · Pearson · daily log-returns</div>
+  </div>
+  <div class="page-body">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">PAIRWISE ASSET CORRELATIONS</div>
+          <div class="panel-sub">Values range from −1 (inverse) to +1 (perfect correlation)</div>
+        </div>
+        <div class="panel-meta">
+          <div class="legend-item">
+            <div style="width:60px;height:10px;border-radius:2px;background:linear-gradient(90deg,#F06060,#162032,#34D399)"></div>
+            <span>−1 → 0 → +1</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="heatmap-wrap"><table class="heatmap"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderForecastView() {
+  return `
+  <div class="page-header">
+    <div class="page-title"><div class="live-dot"></div>PRICE FORECAST</div>
+    <div class="page-controls">
+      <select class="select-ctrl" onchange="pickTickerFc(this.value)">
+        ${S.assets.map(a => `<option value="${a.ticker}" ${a.ticker === S.ticker ? 'selected' : ''}>${shortSym(a.ticker)} — ${a.name}</option>`).join('')}
+      </select>
+      <div class="horizon-ctrl">
+        <span>Horizon</span>
+        <input type="number" min="5" max="180" value="${S.horizon}" onchange="changeHorizon(this.value)" />
+        <span>days</span>
+      </div>
+    </div>
+  </div>
+  <div class="page-body">
+    ${S.busy.fc
+      ? `<div class="empty"><div class="spinner"></div><span>Running forecast model…</span></div>`
+      : S.fcData
+        ? `<div class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title">${S.fcData.ticker} — ${S.fcData.model_used.replace('_',' ').toUpperCase()}</div>
+                <div class="panel-sub">Forecast horizon: ${S.fcData.horizon_days} business days · Shaded = 80% prediction interval</div>
+              </div>
+              <div class="stat-pills">
+                <div class="stat-pill">
+                  <div class="stat-pill-label">MAE</div>
+                  <div class="stat-pill-val" style="color:var(--amber)">${S.fcData.mae.toFixed(5)}</div>
+                </div>
+                <div class="stat-pill">
+                  <div class="stat-pill-label">RMSE</div>
+                  <div class="stat-pill-val" style="color:var(--purple)">${S.fcData.rmse.toFixed(5)}</div>
+                </div>
+                <div class="stat-pill">
+                  <div class="stat-pill-label">MODEL</div>
+                  <div class="stat-pill-val" style="color:var(--teal);font-size:11px">${S.fcData.model_used.replace('_',' ')}</div>
+                </div>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div id="fc-plot" style="height:320px"></div>
+            </div>
+          </div>`
+        : `<div class="empty"><span>Select an asset to generate a forecast.</span></div>`
+    }
+  </div>`;
+}
+
+function renderAuth() {
+  return `
+  <div class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-brand">
+        <div class="live-dot"></div>
+        <div>
+          <div class="auth-title">MARKET ANALYTICS TERMINAL</div>
+          <div class="auth-ver">SYSTEM v1.0 · SECURE ACCESS</div>
+        </div>
+      </div>
+      ${S.err ? `<div class="err-msg">⚠ ${S.err}</div>` : ''}
+      <div class="field"><label>Username</label><input id="au" type="text" value="admin" /></div>
+      <div class="field"><label>Password</label><input id="ap" type="password" value="dashboard123" /></div>
+      <button class="btn-login" onclick="tryLogin()">CONNECT →</button>
+      <div class="auth-hint">Demo: <em>admin</em> / <em>dashboard123</em></div>
+    </div>
+  </div>`;
+}
+
+/* ================================================================
+   MAIN RENDER
+   ================================================================ */
+function render() {
+  const root = document.getElementById('root');
+
+  if (!S.token) {
+    root.innerHTML = renderAuth();
+    document.getElementById('ap')?.addEventListener('keydown', e => e.key === 'Enter' && tryLogin());
+    return;
+  }
+
+  const viewHTML = {
+    kpi:      renderKPI(),
+    trend:    renderTrendView(),
+    corr:     renderCorrView(),
+    forecast: renderForecastView(),
+  }[S.view] || '';
+
+  root.innerHTML = `
+  <div class="app">
+    ${renderTape()}
+    ${renderSidebar()}
+    <div class="content">${viewHTML}</div>
+  </div>`;
+
+  // Mount Plotly after DOM update
+  requestAnimationFrame(() => {
+    if (S.view === 'trend' && S.trendData) mountTrend();
+    if (S.view === 'forecast' && S.fcData) mountForecast();
+  });
+}
+
+/* ================================================================
+   PLOTLY MOUNTS
+   ================================================================ */
+function mountTrend() {
+  const el = document.getElementById('trend-plot');
+  if (!el) return;
+  const b = S.trendData.bars;
+  Plotly.newPlot(el, [
+    { x: b.map(r=>r.date), y: b.map(r=>r.close), name:'Close', type:'scatter', mode:'lines', line:{color:'#00C896',width:1.5} },
+    { x: b.map(r=>r.date), y: b.map(r=>r.ma_20),  name:'MA-20', type:'scatter', mode:'lines', line:{color:'#7C6AF7',width:1.5,dash:'dot'} },
+    { x: b.map(r=>r.date), y: b.map(r=>r.ma_50),  name:'MA-50', type:'scatter', mode:'lines', line:{color:'#F0B429',width:1.5,dash:'dash'} },
+  ], { ...PLY_LAYOUT, showlegend:true }, PLY_CFG);
+}
+
+function mountForecast() {
+  const el = document.getElementById('fc-plot');
+  if (!el) return;
+  const actual = S.trendData?.bars || [];
+  const fc     = S.fcData;
+  const fDates = fc.forecast.map(p=>p.date);
+  const fPred  = fc.forecast.map(p=>p.predicted);
+  const fLo    = fc.forecast.map(p=>p.lower);
+  const fHi    = fc.forecast.map(p=>p.upper);
+  const bandX  = [...fDates, ...fDates.slice().reverse()];
+  const bandY  = [...fHi, ...fLo.slice().reverse()];
+
+  Plotly.newPlot(el, [
+    { x: actual.map(b=>b.date), y: actual.map(b=>b.close), name:'Actual', type:'scatter', mode:'lines', line:{color:'#00C896',width:1.5} },
+    { x: bandX, y: bandY, name:'80% interval', type:'scatter', mode:'none', fill:'toself', fillcolor:'rgba(240,180,41,0.10)', line:{width:0} },
+    { x: fDates, y: fPred, name:'Forecast', type:'scatter', mode:'lines', line:{color:'#F0B429',width:2,dash:'dot'} },
+  ], {
+    ...PLY_LAYOUT,
+    showlegend: true,
+    shapes: [{ type:'line', x0:actual.at(-1)?.date, x1:actual.at(-1)?.date, y0:0, y1:1, yref:'paper', line:{color:'#2A3F58',width:1,dash:'dot'} }],
+  }, PLY_CFG);
+}
+
+/* ================================================================
+   HANDLERS
+   ================================================================ */
+function tryLogin() {
+  const u = document.getElementById('au')?.value?.trim();
+  const p = document.getElementById('ap')?.value;
+  if (!u || !p) return;
+  set({ err: null });
+  doLogin(u, p).catch(e => set({ err: e.message }));
+}
+
+function switchView(v) {
+  set({ view: v });
+  if (v === 'corr' && !S.corrData) loadCorr();
+  if (v === 'forecast' && S.ticker && !S.fcData) loadForecast(S.ticker, S.horizon);
+  if (v === 'trend' && S.ticker && !S.trendData) loadTrend(S.ticker);
+}
+
+function pickTicker(t) {
+  set({ ticker: t, trendData: null, view: 'trend' });
+  loadTrend(t);
+}
+
+function pickTickerFc(t) {
+  set({ ticker: t, fcData: null });
+  loadForecast(t, S.horizon);
+}
+
+function changeHorizon(v) {
+  const d = Math.max(5, Math.min(180, parseInt(v) || 30));
+  S.horizon = d;
+  if (S.ticker) loadForecast(S.ticker, d);
+}
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+render();
+if (S.token) bootstrap();
+</script>
+</body>
+</html>
