@@ -13,6 +13,7 @@ from datetime import date
 
 import pandas as pd
 import yfinance as yf
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 sys.path.insert(0, ".")
@@ -75,14 +76,25 @@ ASSET_CATALOGUE: dict[str, tuple[str, str, str]] = {
 DEFAULT_TICKERS = list(ASSET_CATALOGUE.keys())
 
 
+def init_db():
+    """Drops old tables and lets SQLAlchemy recreate them with exact schemas."""
+    print("Initializing database and synchronization structures...")
+    with engine.connect() as conn:
+        # Drop bars and old market data to avoid any column conflicts
+        conn.execute(text("DROP TABLE IF EXISTS asset_bars CASCADE;"))
+        conn.execute(text("DROP TABLE IF EXISTS market_data CASCADE;"))
+        conn.execute(text("DROP TABLE IF EXISTS assets CASCADE;"))
+        conn.commit()
+    
+    # Recreate tables matching the ORM Models perfectly
+    Base.metadata.create_all(bind=engine)
+
+
 def fetch_ohlcv(ticker: str, period: str, interval: str) -> pd.DataFrame:
     """
     Download OHLCV bars for one ticker from Yahoo Finance.
-
     Returns a clean DataFrame with columns:
         date (datetime.date), open, high, low, close, volume
-
-    Raises ValueError if the download returns no usable data.
     """
     raw = yf.download(
         ticker,
@@ -95,22 +107,47 @@ def fetch_ohlcv(ticker: str, period: str, interval: str) -> pd.DataFrame:
     if raw.empty:
         raise ValueError(f"yfinance returned no data for '{ticker}'")
 
-    # Flatten MultiIndex produced for single-ticker downloads
-    if isinstance(raw.columns, pd.MultiIndex):
-        raw.columns = raw.columns.droplevel(1)
+    # Safe column normalization to handle newer yfinance formats (MultiIndex / Strings)
+    flat_cols = []
+    for col in raw.columns:
+        if isinstance(col, tuple):
+            flat_cols.append(str(col).lower())
+        else:
+            flat_cols.append(str(col).lower())
+    raw.columns = flat_cols
 
-    raw = raw.rename(columns={
-        "Open": "open", "High": "high",
-        "Low":  "low",  "Close": "close", "Volume": "volume",
-    })
+    # Map possible naming variations safely
+    rename_map = {}
+    for c in raw.columns:
+        if "open" in c: rename_map[c] = "open"
+        elif "high" in c: rename_map[c] = "high"
+        elif "low" in c: rename_map[c] = "low"
+        elif "close" in c: rename_map[c] = "close"
+        elif "volume" in c: rename_map[c] = "volume"
+        
+    raw = raw.rename(columns=rename_map)
+    
+    # Ensure all required OHLCV columns exist
+    for expected in ["open", "high", "low", "close"]:
+        if expected not in raw.columns:
+            raise ValueError(f"Missing structural column '{expected}' for {ticker}")
+            
+    if "volume" not in raw.columns:
+        raw["volume"] = 0
 
-    raw = raw[["open", "high", "low", "close", "volume"]].copy()
-    raw = raw.dropna(subset=["open", "high", "low", "close"])
-    raw.index = pd.to_datetime(raw.index)
-    raw["date"]   = raw.index.date
-    raw["volume"] = raw["volume"].fillna(0).astype(int)
+    # Build fresh clean dataframe
+    processed = pd.DataFrame(index=raw.index)
+    processed["open"] = raw["open"].astype(float)
+    processed["high"] = raw["high"].astype(float)
+    processed["low"] = raw["low"].astype(float)
+    processed["close"] = raw["close"].astype(float)
+    processed["volume"] = raw["volume"].fillna(0).astype(int)
+    
+    # Extract structural dates safely from index
+    processed["date"] = pd.to_datetime(processed.index).date
+    processed = processed.dropna(subset=["open", "high", "low", "close"])
 
-    return raw.reset_index(drop=True)
+    return processed.reset_index(drop=True)
 
 
 def upsert_asset(db: Session, ticker: str) -> Asset:
@@ -163,7 +200,7 @@ def seed_ticker(db: Session, ticker: str, period: str, interval: str, reset: boo
 
     db.bulk_save_objects(new_rows)
     info = ASSET_CATALOGUE.get(ticker, (ticker, "", ""))
-    market_tag = f"[{info[2]}]" if len(info) > 2 else ""
+    market_tag = f"[{info}]" if len(info) > 2 else ""
     print(f"  ✓  {len(new_rows):>4} new bars  (fetched {len(df)})  {market_tag}")
     return len(new_rows)
 
@@ -176,9 +213,13 @@ def main():
     parser.add_argument("--reset",    action="store_true",            help="Wipe existing data first")
     args = parser.parse_args()
 
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    # Always initialize or sync database schemas on startup
+    if args.reset:
+        init_db()
+    else:
+        Base.metadata.create_all(bind=engine)
 
+    db = SessionLocal()
     tickers = [t.upper() for t in args.tickers]
     print(f"\nSeeding {len(tickers)} instrument(s)  "
           f"[period={args.period}  interval={args.interval}  reset={args.reset}]\n")

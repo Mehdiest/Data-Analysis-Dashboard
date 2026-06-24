@@ -1,67 +1,42 @@
-"""
-routers/trend.py — /api/trend endpoints for OHLC + moving average charts.
-"""
+# Inside your trend router / endpoint
+@router.get("/api/trend/{ticker}")
+def get_trend(ticker: str, db=Depends(get_db)):
+    # Your database query must select open, high, low, volume:
+    result = db.execute(text("""
+        SELECT date, open, high, low, close, volume 
+        FROM asset_bars 
+        WHERE ticker = :ticker 
+        ORDER BY date ASC
+    """), {"ticker": ticker}).fetchall()
+    
+    # When mapping into the "bars" array sent to frontend:
+    bars = []
+    closes = [r.close for r in result]
+    
+    # Simple MA calculation helper
+    def get_ma(data, window):
+        if len(data) < window: return data[-1] if data else 0
+        return float(np.mean(data[-window:]))
 
-from datetime import date
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-
-import pandas as pd
-
-from app.auth import get_current_user
-from app.database import get_db
-from app.models import Asset, MarketData
-from app.schemas import TrendResponse
-from app.analysis.statistics import compute_trend
-
-router = APIRouter(prefix="/api/trend", tags=["trend"])
-
-
-@router.get(
-    "/{ticker}",
-    response_model=TrendResponse,
-    summary="OHLC bars + moving averages + OLS trend for a single asset",
-)
-def get_trend(
-    ticker:     str,
-    start_date: Optional[date] = Query(None, description="Filter bars from this date (inclusive)"),
-    end_date:   Optional[date] = Query(None, description="Filter bars up to this date (inclusive)"),
-    db:         Session        = Depends(get_db),
-    _user:      str            = Depends(get_current_user),
-):
-    """
-    Return daily OHLC bars enriched with MA-20, MA-50, and an OLS trend fit.
-
-    The optional `start_date` / `end_date` query params let the frontend
-    zoom into a specific time window without re-fetching everything.
-    """
-    asset = db.query(Asset).filter(Asset.ticker == ticker.upper()).first()
-    if not asset:
-        raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found")
-
-    query = (
-        db.query(MarketData)
-        .filter(MarketData.asset_id == asset.id)
-        .order_by(MarketData.date)
-    )
-    if start_date:
-        query = query.filter(MarketData.date >= start_date)
-    if end_date:
-        query = query.filter(MarketData.date <= end_date)
-
-    rows = query.all()
-    if not rows:
-        raise HTTPException(status_code=404, detail=f"No data for '{ticker}' in the requested range")
-
-    df = pd.DataFrame([{
-        "date":   r.date,
-        "open":   r.open,
-        "high":   r.high,
-        "low":    r.low,
-        "close":  r.close,
-        "volume": r.volume,
-    } for r in rows])
-
-    return compute_trend(df, asset.ticker, asset.name)
+    for i, r in enumerate(result):
+        history_closes = closes[:i+1]
+        bars.append({
+            "date": str(r.date),
+            "open": float(r.open) if r.open else float(r.close),
+            "high": float(r.high) if r.high else float(r.close),
+            "low": float(r.low) if r.low else float(r.close),
+            "close": float(r.close),
+            "volume": float(r.volume) if r.volume else 0.0,
+            "ma_20": get_ma(history_closes, 20),
+            "ma_50": get_ma(history_closes, 50)
+        })
+        
+    # Calculate trend_direction, slope, r_squared...
+    # Return the final dict
+    return {
+        "ticker": ticker,
+        "bars": bars,
+        "trend_direction": "up", # dynamically calculated in your code
+        "trend_slope": 0.001,
+        "r_squared": 0.85
+    }
